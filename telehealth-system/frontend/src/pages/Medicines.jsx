@@ -25,7 +25,18 @@ export default function Medicines() {
       const response = await medicineAPI.getPharmacies();
       setPharmacies(response.data);
     } catch (error) {
-      setPharmacies(['Sharma Pharmacy', 'Village Pharmacy', 'Health Plus', 'Gupta Medical Store']);
+      setPharmacies([
+        { name: 'Mittal Medicos', address: 'Cinema Road, Guru Nanak Pura', city: 'Nabha' },
+        { name: 'Prem Medical Store', address: 'Bhawra Bazar, Near Aggarwal Dharamshala', city: 'Nabha' },
+        { name: 'Pardeep Medicos', address: 'Patiala Gate', city: 'Nabha' },
+        { name: 'Raja Distributors', address: 'Atma Ram Colony, Railway Road', city: 'Nabha' },
+        { name: 'Harish Medicos', address: 'Markana Road, Alohran Kalan Road', city: 'Nabha' },
+        { name: 'Raja Medical Hall', address: 'Inside Alohran Gate, Ghas Mandi Road', city: 'Nabha' },
+        { name: 'Royal Medical Store', address: 'Laxman Nagar', city: 'Nabha' },
+        { name: 'Bakshi Healthcare', address: 'Malerkotla Road', city: 'Nabha' },
+        { name: 'Shakti Medical Agency', address: 'Cinema Road, Guru Nanak Pura', city: 'Nabha' },
+        { name: 'Dhanjal Medical Hall', address: 'Civil Hospital Road', city: 'Nabha' }
+      ]);
     }
   };
 
@@ -41,10 +52,12 @@ export default function Medicines() {
     } catch (error) {
       const demoMedicines = {
         [searchQuery]: [
-          { pharmacy: 'Sharma Pharmacy', available: true, price: 25, distance: 1.2 },
-          { pharmacy: 'Village Pharmacy', available: false, price: null, distance: 2.5 },
-          { pharmacy: 'Health Plus', available: true, price: 28, distance: 3.1 },
-          { pharmacy: 'Gupta Medical Store', available: true, price: 22, distance: 4.0 }
+          { pharmacy: 'Mittal Medicos', address: 'Cinema Road, Guru Nanak Pura, Nabha', available: true, price: 25, distance: 1.2 },
+          { pharmacy: 'Prem Medical Store', address: 'Bhawra Bazar, Near Aggarwal Dharamshala, Nabha', available: false, price: null, distance: 2.5 },
+          { pharmacy: 'Pardeep Medicos', address: 'Patiala Gate, Nabha', available: true, price: 28, distance: 1.8 },
+          { pharmacy: 'Raja Distributors', address: 'Atma Ram Colony, Railway Road, Nabha', available: true, price: 22, distance: 2.0 },
+          { pharmacy: 'Harish Medicos', address: 'Markana Road, Alohran Kalan Road, Nabha', available: true, price: 30, distance: 3.5 },
+          { pharmacy: 'Royal Medical Store', address: 'Laxman Nagar, Nabha', available: true, price: 26, distance: 2.8 }
         ]
       };
       setMedicines(demoMedicines);
@@ -66,15 +79,34 @@ export default function Medicines() {
     setTimeout(() => {
       const demoMedicines = {
         [medicine]: [
-          { pharmacy: 'Sharma Pharmacy', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 1.2 },
-          { pharmacy: 'Village Pharmacy', available: Math.random() > 0.5, price: Math.floor(Math.random() * 50) + 10, distance: 2.5 },
-          { pharmacy: 'Health Plus', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 3.1 },
-          { pharmacy: 'Gupta Medical Store', available: Math.random() > 0.4, price: Math.floor(Math.random() * 50) + 10, distance: 4.0 }
+          { pharmacy: 'Mittal Medicos', address: 'Cinema Road, Guru Nanak Pura, Nabha', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 1.2 },
+          { pharmacy: 'Prem Medical Store', address: 'Bhawra Bazar, Near Aggarwal Dharamshala, Nabha', available: Math.random() > 0.5, price: Math.floor(Math.random() * 50) + 10, distance: 2.5 },
+          { pharmacy: 'Pardeep Medicos', address: 'Patiala Gate, Nabha', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 1.8 },
+          { pharmacy: 'Raja Distributors', address: 'Atma Ram Colony, Railway Road, Nabha', available: Math.random() > 0.4, price: Math.floor(Math.random() * 50) + 10, distance: 2.0 },
+          { pharmacy: 'Harish Medicos', address: 'Markana Road, Alohran Kalan Road, Nabha', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 3.5 },
+          { pharmacy: 'Royal Medical Store', address: 'Laxman Nagar, Nabha', available: Math.random() > 0.4, price: Math.floor(Math.random() * 50) + 10, distance: 2.8 },
+          { pharmacy: 'Bakshi Healthcare', address: 'Malerkotla Road, Nabha', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 3.2 },
+          { pharmacy: 'Raja Medical Hall', address: 'Inside Alohran Gate, Ghas Mandi Road, Nabha', available: Math.random() > 0.4, price: Math.floor(Math.random() * 50) + 10, distance: 2.3 }
         ]
       };
       setMedicines(demoMedicines);
       setLoading(false);
     }, 600);
+  };
+
+  const handleGetDirections = (pharmacyName, address, e) => {
+    // Prevent event bubbling if called from a button inside a clickable element
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    // Open Google Maps with the full pharmacy address for accurate location
+    const fullAddress = address ? `${pharmacyName}, ${address}` : pharmacyName;
+    const searchQuery = encodeURIComponent(fullAddress);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+    
+    // Open in new tab
+    window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   const containerVariants = {
@@ -172,6 +204,9 @@ export default function Medicines() {
                           </div>
                           <div>
                             <h3 className="text-lg font-bold text-slate-900">{item.pharmacy}</h3>
+                            {item.address && (
+                              <p className="text-sm text-slate-600 mt-0.5">{item.address}</p>
+                            )}
                             <div className="flex items-center gap-3 mt-1 text-sm">
                               <span className={cn("font-semibold flex items-center gap-1", item.available ? 'text-brand-success' : 'text-brand-emergency')}>
                                 <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
@@ -186,7 +221,11 @@ export default function Medicines() {
                         {item.available && item.price && (
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
                             <p className="text-xl font-bold text-slate-900">₹{item.price}</p>
-                            <Button variant="ghost" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8">
+                            <Button 
+                              variant="ghost" 
+                              className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8"
+                              onClick={(e) => handleGetDirections(item.pharmacy, item.address, e)}
+                            >
                               <Navigation className="w-4 h-4 mr-1.5" /> Directions
                             </Button>
                           </div>
@@ -221,12 +260,18 @@ export default function Medicines() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {pharmacies.map((pharmacy, index) => (
-              <Card key={index} hoverEffect className="p-5 flex flex-col group cursor-pointer border-transparent hover:border-primary-200">
+              <Card 
+                key={index} 
+                hoverEffect 
+                className="p-5 flex flex-col group cursor-pointer border-transparent hover:border-primary-200"
+                onClick={() => handleGetDirections(pharmacy.name || pharmacy, `${pharmacy.address || ''}, ${pharmacy.city || 'Nabha'}`)}
+              >
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
                   <Pill size={24} />
                 </div>
-                <h3 className="font-bold text-slate-900 mb-1">{pharmacy}</h3>
-                <p className="text-sm text-slate-500 mb-4">{(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now</p>
+                <h3 className="font-bold text-slate-900 mb-1">{pharmacy.name || pharmacy}</h3>
+                <p className="text-sm text-slate-500 mb-2">{pharmacy.address || 'Nabha'}</p>
+                <p className="text-xs text-slate-400 mb-4">{(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now</p>
                 <div className="mt-auto flex items-center text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
                   Get Directions <ChevronRight className="w-4 h-4 ml-1" />
                 </div>
