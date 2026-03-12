@@ -7,8 +7,10 @@ import {
   Activity, Search, AlertTriangle, 
   Info, Sparkles, Plus, ArrowRight, RotateCcw
 } from 'lucide-react';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 export default function SymptomCheckerComponent() {
+  const { t } = useTranslation();
   const [symptoms, setSymptoms] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -87,9 +89,14 @@ export default function SymptomCheckerComponent() {
          <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Activity size={32} />
          </div>
-         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">AI Symptom Checker</h1>
+         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+           {t('symptom.title', 'AI Symptom Checker')}
+         </h1>
          <p className="text-slate-500 mt-2 text-lg">
-            Describe how you are feeling, and our AI will provide instant health guidance.
+            {t(
+              'symptom.subtitle',
+              'Describe how you are feeling, and our AI will provide instant health guidance.'
+            )}
          </p>
       </motion.div>
 
@@ -108,19 +115,24 @@ export default function SymptomCheckerComponent() {
                 <div>
                   <label className="label flex items-center gap-2 text-slate-700">
                     <Sparkles className="w-4 h-4 text-primary-500 text-sm" /> 
-                    What symptoms are you experiencing?
+                    {t('symptom.question', 'What symptoms are you experiencing?')}
                   </label>
                   <textarea
                     value={symptoms}
                     onChange={(e) => setSymptoms(e.target.value)}
-                    placeholder="e.g., I have a mild fever, dry cough, and a headache since yesterday..."
+                    placeholder={t(
+                      'symptom.placeholder',
+                      'e.g., I have a mild fever, dry cough, and a headache since yesterday...'
+                    )}
                     className="input-field min-h-[140px] resize-none text-lg p-4 bg-white"
                     rows={4}
                   />
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Common Symptoms</p>
+                  <p className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">
+                    {t('symptom.commonSymptomsLabel', 'Common Symptoms')}
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {commonSymptoms.map((symptom) => (
                       <button
@@ -141,9 +153,14 @@ export default function SymptomCheckerComponent() {
                     disabled={!symptoms.trim() || loading}
                     className="flex-1 h-14 text-lg"
                     isLoading={loading}
-                    loadingText="Analyzing Symptoms..."
+                    loadingText={t('symptom.loadingAnalyze', 'Analyzing Symptoms...')}
                   >
-                    {!loading && <><Search className="w-5 h-5 mr-2" /> Analyze Symptoms</>}
+                    {!loading && (
+                      <>
+                        <Search className="w-5 h-5 mr-2" />{' '}
+                        {t('symptom.buttonAnalyze', 'Analyze Symptoms')}
+                      </>
+                    )}
                   </Button>
                   
                   {symptoms && (
@@ -153,7 +170,7 @@ export default function SymptomCheckerComponent() {
                       variant="ghost"
                       className="sm:w-auto px-6 h-14"
                     >
-                      Clear
+                      {t('symptom.clear', 'Clear')}
                     </Button>
                   )}
                 </div>
@@ -168,10 +185,14 @@ export default function SymptomCheckerComponent() {
                     <Info className="w-6 h-6 text-primary-600" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-primary-900 mb-1">How it works</h4>
+                    <h4 className="font-bold text-primary-900 mb-1">
+                      {t('symptom.howTitle', 'How it works')}
+                    </h4>
                     <p className="text-primary-700/80 text-sm leading-relaxed">
-                      Our AI model analyzes your symptoms against a vast medical database to suggest potential causes and next steps. 
-                      This tool is designed to help you prepare for a consultation, not to replace professional medical advice.
+                      {t(
+                        'symptom.howBody',
+                        'Our AI model analyzes your symptoms against a vast medical database to suggest potential causes and next steps. This tool is designed to help you prepare for a consultation, not to replace professional medical advice.'
+                      )}
                     </p>
                   </div>
                 </Card>
@@ -194,15 +215,18 @@ export default function SymptomCheckerComponent() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/3" />
                 <h3 className="text-2xl font-bold flex items-center gap-3 relative z-10">
                   <Activity className="w-8 h-8 opacity-80" />
-                  Analysis complete
+                  {t('symptom.resultTitle', 'Analysis complete')}
                 </h3>
-                <p className="mt-2 text-primary-100">Based on your reported symptoms.</p>
+                <p className="mt-2 text-primary-100">
+                  {t('symptom.resultSubtitle', 'Based on your reported symptoms.')}
+                </p>
               </div>
               
               <div className="p-6 sm:p-8 space-y-8">
                 <div>
                   <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <Sparkles className="text-primary-500 w-5 h-5" /> Possible Conditions & Advice
+                    <Sparkles className="text-primary-500 w-5 h-5" />{' '}
+                    {t('symptom.possibleConditions', 'Possible Conditions & Advice')}
                   </h4>
                   <div className="prose prose-slate prose-lg max-w-none">
                     <div className="bg-slate-50 p-6 rounded-2xl text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-wrap">
@@ -216,9 +240,15 @@ export default function SymptomCheckerComponent() {
                     <AlertTriangle className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-amber-900 mb-1">Medical Disclaimer</h4>
+                    <h4 className="font-bold text-amber-900 mb-1">
+                      {t('symptom.disclaimerTitle', 'Medical Disclaimer')}
+                    </h4>
                     <p className="text-sm text-amber-800 leading-relaxed">
-                      {result.disclaimer || 'This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.'}
+                      {result.disclaimer ||
+                        t(
+                          'symptom.disclaimerFallback',
+                          'This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.'
+                        )}
                     </p>
                   </div>
                 </div>
@@ -228,14 +258,16 @@ export default function SymptomCheckerComponent() {
                     onClick={() => window.location.href = '/book-appointment'}
                     className="flex-1 h-14 text-lg bg-slate-900 hover:bg-slate-800"
                   >
-                    Consult a Doctor Now <ArrowRight className="w-5 h-5 ml-2" />
+                    {t('symptom.consultNow', 'Consult a Doctor Now')}{' '}
+                    <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                   <Button 
                     onClick={handleClear} 
                     variant="outline"
                     className="sm:w-auto h-14 px-8"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" /> Start Over
+                    <RotateCcw className="w-4 h-4 mr-2" />{' '}
+                    {t('symptom.startOver', 'Start Over')}
                   </Button>
                 </div>
               </div>

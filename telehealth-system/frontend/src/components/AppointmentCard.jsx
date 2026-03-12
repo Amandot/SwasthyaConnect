@@ -1,18 +1,36 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 function AppointmentCard({ appointment, onCancel }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'scheduled':
-        return <span className="status-badge status-scheduled">Scheduled</span>;
+        return (
+          <span className="status-badge status-scheduled">
+            {t('appointment.status.scheduled', 'Scheduled')}
+          </span>
+        );
       case 'completed':
-        return <span className="status-badge status-completed">Completed</span>;
+        return (
+          <span className="status-badge status-completed">
+            {t('appointment.status.completed', 'Completed')}
+          </span>
+        );
       case 'cancelled':
-        return <span className="status-badge status-cancelled">Cancelled</span>;
+        return (
+          <span className="status-badge status-cancelled">
+            {t('appointment.status.cancelled', 'Cancelled')}
+          </span>
+        );
       case 'in-progress':
-        return <span className="status-badge bg-yellow-100 text-yellow-700">In Progress</span>;
+        return (
+          <span className="status-badge bg-yellow-100 text-yellow-700">
+            {t('appointment.status.inProgress', 'In Progress')}
+          </span>
+        );
       default:
         return <span className="status-badge bg-slate-100 text-slate-700">{status}</span>;
     }
@@ -44,7 +62,8 @@ function AppointmentCard({ appointment, onCancel }) {
           {/* Appointment Details */}
           <div>
             <h3 className="font-semibold text-slate-800">
-              Dr. {appointment.doctorName || 'Doctor'}
+              {t('appointment.prefix.doctor', 'Dr. ')}
+              {appointment.doctorName || t('appointment.fallback.doctor', 'Doctor')}
             </h3>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
               <span className="flex items-center gap-1">
@@ -61,12 +80,14 @@ function AppointmentCard({ appointment, onCancel }) {
                 ) : (
                   <PhoneIcon className="w-4 h-4" />
                 )}
-                {appointment.type === 'video' ? 'Video Call' : 'Audio Call'}
+                {appointment.type === 'video'
+                  ? t('appointment.type.video', 'Video Call')
+                  : t('appointment.type.audio', 'Audio Call')}
               </span>
             </div>
             {appointment.notes && (
               <p className="text-sm text-slate-500 mt-2">
-                Note: {appointment.notes}
+                {t('appointment.label.note', 'Note')}: {appointment.notes}
               </p>
             )}
           </div>
@@ -84,21 +105,21 @@ function AppointmentCard({ appointment, onCancel }) {
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
                 >
                   <VideoIcon className="w-4 h-4" />
-                  Join Call
+                  {t('appointment.action.joinCall', 'Join Call')}
                 </button>
                 {onCancel && (
                   <button
                     onClick={() => onCancel(appointment.id)}
                     className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
                   >
-                    Cancel
+                    {t('appointment.action.cancel', 'Cancel')}
                   </button>
                 )}
               </>
             )}
             {appointment.status === 'completed' && (
               <button className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-                View Summary
+                {t('appointment.action.viewSummary', 'View Summary')}
               </button>
             )}
           </div>

@@ -24,8 +24,10 @@ import {
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 export default function EmergencyPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
@@ -197,10 +199,16 @@ export default function EmergencyPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-              Emergency <span className="text-[var(--color-emergency-red)]">Services</span>
+              {t('emergency.title.main', 'Emergency')}{' '}
+              <span className="text-[var(--color-emergency-red)]">
+                {t('emergency.title.services', 'Services')}
+              </span>
             </h1>
             <p className="text-slate-500 mt-1 text-lg">
-              Immediate medical assistance when every second counts.
+              {t(
+                'emergency.subtitle',
+                'Immediate medical assistance when every second counts.'
+              )}
             </p>
           </div>
         </div>
@@ -218,9 +226,18 @@ export default function EmergencyPage() {
                 <PhoneCall className="w-10 h-10 text-white" />
               </div>
               <div>
-                <p className="text-white/80 text-sm font-semibold tracking-wide uppercase mb-2">Immediate Assistance</p>
-                <h2 className="text-3xl md:text-4xl font-bold mb-2">Need Help Right Now?</h2>
-                <p className="text-white/90 text-lg">Press the SOS button for instant emergency response</p>
+                <p className="text-white/80 text-sm font-semibold tracking-wide uppercase mb-2">
+                  {t('emergency.sos.badge', 'Immediate Assistance')}
+                </p>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">
+                  {t('emergency.sos.title', 'Need Help Right Now?')}
+                </h2>
+                <p className="text-white/90 text-lg">
+                  {t(
+                    'emergency.sos.subtitle',
+                    'Press the SOS button for instant emergency response'
+                  )}
+                </p>
               </div>
             </div>
             
@@ -238,7 +255,9 @@ export default function EmergencyPage() {
 
       {/* Quick Actions Grid */}
       <motion.section variants={itemVariants} className="mb-12">
-        <h2 className="section-title">Emergency Actions</h2>
+        <h2 className="section-title">
+          {t('emergency.actions.title', 'Emergency Actions')}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {quickActions.map((action) => (
             action.link ? (
@@ -247,8 +266,12 @@ export default function EmergencyPage() {
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110", action.bg, action.color)}>
                     <action.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">{action.title}</h3>
-                  <p className="text-slate-500 text-sm">{action.description}</p>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">
+                    {t(`emergency.action.${action.title}.title`, action.title)}
+                  </h3>
+                  <p className="text-slate-500 text-sm">
+                    {t(`emergency.action.${action.title}.desc`, action.description)}
+                  </p>
                 </Card>
               </Link>
             ) : (
@@ -257,8 +280,12 @@ export default function EmergencyPage() {
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110", action.bg, action.color)}>
                     <action.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">{action.title}</h3>
-                  <p className="text-slate-500 text-sm">{action.description}</p>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">
+                    {t(`emergency.action.${action.title}.title`, action.title)}
+                  </h3>
+                  <p className="text-slate-500 text-sm">
+                    {t(`emergency.action.${action.title}.desc`, action.description)}
+                  </p>
                 </Card>
               </button>
             )

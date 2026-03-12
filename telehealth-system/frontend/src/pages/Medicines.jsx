@@ -9,8 +9,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { medicalStores } from '../data/medicalStores';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 export default function Medicines() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [medicines, setMedicines] = useState([]);
   const [pharmacies, setPharmacies] = useState([]);
@@ -104,8 +106,15 @@ export default function Medicines() {
       animate="visible"
     >
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Medicine Finder</h1>
-        <p className="text-slate-500 mt-2 text-lg">Locate prescribed medicines at nearby pharmacies instantly.</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+          {t('medicines.title', 'Medicine Finder')}
+        </h1>
+        <p className="text-slate-500 mt-2 text-lg">
+          {t(
+            'medicines.subtitle',
+            'Locate prescribed medicines at nearby pharmacies instantly.'
+          )}
+        </p>
       </div>
 
       <Card className="mb-8 p-6 sm:p-8 bg-gradient-to-br from-white to-slate-50">
@@ -116,7 +125,10 @@ export default function Medicines() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for a medicine (e.g., Paracetamol)..."
+              placeholder={t(
+                'medicines.inputPlaceholder',
+                'Search for a medicine (e.g., Paracetamol)...'
+              )}
               className="input-field pl-12 h-14 text-lg border-2 border-slate-200 focus:border-primary-500 bg-white"
             />
           </div>
@@ -127,12 +139,18 @@ export default function Medicines() {
             disabled={loading || !searchQuery.trim()}
             isLoading={loading}
           >
-            {!loading && <><Search className="w-5 h-5 mr-2" /> Search</>}
+            {!loading && (
+              <>
+                <Search className="w-5 h-5 mr-2" /> {t('medicines.searchButton', 'Search')}
+              </>
+            )}
           </Button>
         </form>
 
         <div className="mt-6">
-          <p className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Frequently Searched</p>
+          <p className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">
+            {t('medicines.freqSearched', 'Frequently Searched')}
+          </p>
           <div className="flex flex-wrap gap-2">
             {commonMedicines.map((medicine) => (
               <button
@@ -168,7 +186,12 @@ export default function Medicines() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-slate-900">{medicineName}</h2>
-                      <p className="text-sm text-slate-500">Showing availability in nearby pharmacies</p>
+                      <p className="text-sm text-slate-500">
+                        {t(
+                          'medicines.showingAvailability',
+                          'Showing availability in nearby pharmacies'
+                        )}
+                      </p>
                     </div>
                   </div>
 
@@ -183,8 +206,10 @@ export default function Medicines() {
                             <h3 className="text-lg font-bold text-slate-900">{item.pharmacy}</h3>
                             <div className="flex items-center gap-3 mt-1 text-sm">
                               <span className={cn("font-semibold flex items-center gap-1", item.available ? 'text-brand-success' : 'text-brand-emergency')}>
-                                <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
-                                {item.available ? 'In Stock' : 'Out of Stock'}
+                              <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
+                                {item.available
+                                  ? t('medicines.inStock', 'In Stock')
+                                  : t('medicines.outOfStock', 'Out of Stock')}
                               </span>
                               <span className="text-slate-400">•</span>
                               <span className="text-slate-500">{item.distance} km away</span>
@@ -196,7 +221,8 @@ export default function Medicines() {
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
                             <p className="text-xl font-bold text-slate-900">₹{item.price}</p>
                             <Button variant="ghost" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8">
-                              <Navigation className="w-4 h-4 mr-1.5" /> Directions
+                              <Navigation className="w-4 h-4 mr-1.5" />{' '}
+                              {t('medicines.getDirections', 'Get Directions')}
                             </Button>
                           </div>
                         )}
@@ -211,8 +237,15 @@ export default function Medicines() {
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">No Results Found</h3>
-              <p className="text-slate-500 max-w-sm">We couldn't find "{searchQuery}" in our local database. Try searching for a different medicine or checking spelling.</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                {t('medicines.noResultsTitle', 'No Results Found')}
+              </h3>
+              <p className="text-slate-500 max-w-sm">
+                {t(
+                  'medicines.noResultsBody',
+                  `We couldn't find "${searchQuery}" in our local database. Try searching for a different medicine or checking spelling.`
+                )}
+              </p>
             </Card>
           )}
         </motion.div>
@@ -223,9 +256,11 @@ export default function Medicines() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <MapPin className="text-primary-600" />
-              Pharmacies in Your Area
+              {t('medicines.pharmaciesAreaTitle', 'Pharmacies in Your Area')}
             </h2>
-            <Button variant="ghost" className="text-primary-600">View Map</Button>
+            <Button variant="ghost" className="text-primary-600">
+              {t('medicines.viewMap', 'View Map')}
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -238,7 +273,8 @@ export default function Medicines() {
                 <p className="text-sm text-slate-500 mb-1">{store.address}</p>
                 <p className="text-xs text-slate-400 mb-4">{store.city}</p>
                 <div className="mt-auto flex items-center text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Get Directions <ChevronRight className="w-4 h-4 ml-1" />
+                  {t('medicines.getDirections', 'Get Directions')}{' '}
+                  <ChevronRight className="w-4 h-4 ml-1" />
                 </div>
               </Card>
             ))}

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 function VideoCall({ roomId, userName, onLeave }) {
   const [isJoined, setIsJoined] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Initialize Jitsi Meet
@@ -53,7 +55,12 @@ function VideoCall({ roomId, userName, onLeave }) {
           initializeJitsi(domain, options);
         }
       } catch (err) {
-        setError('Failed to load video call. Please try again.');
+        setError(
+          t(
+            'video.error.load',
+            'Failed to load video call. Please try again.'
+          )
+        );
         console.error('Jitsi error:', err);
       }
     };
@@ -124,7 +131,7 @@ function VideoCall({ roomId, userName, onLeave }) {
           onClick={() => window.location.reload()}
           className="btn-primary"
         >
-          Try Again
+          {t('video.action.retry', 'Try Again')}
         </button>
       </div>
     );
@@ -137,7 +144,12 @@ function VideoCall({ roomId, userName, onLeave }) {
         {!isJoined && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900">
             <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-white text-lg">Connecting to consultation room...</p>
+            <p className="text-white text-lg">
+              {t(
+                'video.status.connectingRoom',
+                'Connecting to consultation room...'
+              )}
+            </p>
             <p className="text-slate-400 text-sm mt-2">Room ID: {roomId}</p>
           </div>
         )}
@@ -150,7 +162,11 @@ function VideoCall({ roomId, userName, onLeave }) {
           className={`p-3 rounded-full transition-colors ${
             isAudioEnabled ? 'bg-slate-700 text-white' : 'bg-red-600 text-white'
           }`}
-          title={isAudioEnabled ? 'Mute microphone' : 'Unmute microphone'}
+          title={
+            isAudioEnabled
+              ? t('video.tooltip.mute', 'Mute microphone')
+              : t('video.tooltip.unmute', 'Unmute microphone')
+          }
         >
           {isAudioEnabled ? (
             <MicIcon className="w-5 h-5" />
@@ -164,7 +180,11 @@ function VideoCall({ roomId, userName, onLeave }) {
           className={`p-3 rounded-full transition-colors ${
             isVideoEnabled ? 'bg-slate-700 text-white' : 'bg-red-600 text-white'
           }`}
-          title={isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}
+          title={
+            isVideoEnabled
+              ? t('video.tooltip.cameraOff', 'Turn off camera')
+              : t('video.tooltip.cameraOn', 'Turn on camera')
+          }
         >
           {isVideoEnabled ? (
             <VideoIcon className="w-5 h-5" />
@@ -176,7 +196,7 @@ function VideoCall({ roomId, userName, onLeave }) {
         <button
           onClick={handleLeave}
           className="p-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
-          title="Leave call"
+          title={t('video.tooltip.leave', 'Leave call')}
         >
           <PhoneOffIcon className="w-5 h-5" />
         </button>
@@ -185,7 +205,11 @@ function VideoCall({ roomId, userName, onLeave }) {
       {/* Connection Status */}
       <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-full">
         <div className={`w-2 h-2 rounded-full ${isJoined ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
-        <span className="text-white text-sm">{isJoined ? 'Connected' : 'Connecting...'}</span>
+        <span className="text-white text-sm">
+          {isJoined
+            ? t('video.status.connected', 'Connected')
+            : t('video.status.connecting', 'Connecting...')}
+        </span>
       </div>
     </div>
   );

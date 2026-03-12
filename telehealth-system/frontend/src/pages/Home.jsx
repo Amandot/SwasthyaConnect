@@ -7,9 +7,11 @@ import {
   ChevronRight, Shield, Award, HeartHandshake, Phone, Globe, Star, Users, HeartPulse
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
@@ -27,12 +29,12 @@ export default function Home() {
   };
 
   const features = [
-    { icon: Video, title: "Consult Doctor", desc: "Live video & audio calls with certified professionals.", color: "text-blue-600", bg: "bg-blue-50 border border-blue-100" },
-    { icon: Activity, title: "AI Symptom Checker", desc: "Get instant AI-driven health assessments.", color: "text-purple-600", bg: "bg-purple-50 border border-purple-100" },
-    { icon: FileText, title: "Health Records", desc: "Securely store and access your medical history.", color: "text-emerald-600", bg: "bg-emerald-50 border border-emerald-100" },
-    { icon: Pill, title: "Medicine Finder", desc: "Locate prescribed medicines at nearby pharmacies.", color: "text-amber-600", bg: "bg-amber-50 border border-amber-100" },
-    { icon: MapPin, title: "Nearby Centers", desc: "Find government approved rural health centers.", color: "text-indigo-600", bg: "bg-indigo-50 border border-indigo-100" },
-    { icon: AlertCircle, title: "Emergency Help", desc: "One-tap access to ambulance and urgent care.", color: "text-red-600", bg: "bg-red-50 border border-red-100" }
+    { icon: Video, titleKey: 'nav.consultDoctor', fallbackTitle: 'Consult Doctor', descKey: 'feature.consult.desc', fallbackDesc: 'Live video & audio calls with certified professionals.', color: 'text-blue-600', bg: 'bg-blue-50 border border-blue-100' },
+    { icon: Activity, titleKey: 'nav.aiSymptoms', fallbackTitle: 'AI Symptom Checker', descKey: 'feature.ai.desc', fallbackDesc: 'Get instant AI-driven health assessments.', color: 'text-purple-600', bg: 'bg-purple-50 border border-purple-100' },
+    { icon: FileText, titleKey: 'nav.healthRecords', fallbackTitle: 'Health Records', descKey: 'feature.records.desc', fallbackDesc: 'Securely store and access your medical history.', color: 'text-emerald-600', bg: 'bg-emerald-50 border border-emerald-100' },
+    { icon: Pill, titleKey: 'nav.medicines', fallbackTitle: 'Medicine Finder', descKey: 'feature.medicines.desc', fallbackDesc: 'Locate prescribed medicines at nearby pharmacies.', color: 'text-amber-600', bg: 'bg-amber-50 border border-amber-100' },
+    { icon: MapPin, titleKey: 'feature.nearby.title', fallbackTitle: 'Nearby Centers', descKey: 'feature.nearby.desc', fallbackDesc: 'Find government approved rural health centers.', color: 'text-indigo-600', bg: 'bg-indigo-50 border border-indigo-100' },
+    { icon: AlertCircle, titleKey: 'nav.emergency', fallbackTitle: 'Emergency Help', descKey: 'feature.emergency.desc', fallbackDesc: 'One-tap access to ambulance and urgent care.', color: 'text-red-600', bg: 'bg-red-50 border border-red-100' }
   ];
 
   const steps = [
@@ -65,25 +67,30 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
               </span>
-              Now serving thousands of villages
+              {t('home.hero.badge', 'Now serving thousands of villages')}
             </motion.div>
             
             <motion.h1 variants={fadeIn} className="text-5xl lg:text-7xl font-extrabold text-slate-900 tracking-tight mb-6 leading-[1.1]">
-              Healthcare for <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-blue-600 drop-shadow-sm">Every Village</span>
+              {t('home.hero.titleLine1', 'Healthcare for')} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-blue-600 drop-shadow-sm">
+                {t('home.hero.titleLine2', 'Every Village')}
+              </span>
             </motion.h1>
             
             <motion.p variants={fadeIn} className="text-lg text-slate-600 mb-8 max-w-xl mx-auto lg:mx-0 text-balance leading-relaxed">
-              SwasthyaConnect bridges the gap between rural communities and premium healthcare. Get instant access to certified doctors, AI diagnostics, and digital prescriptions—even on low bandwidth networks.
+              {t(
+                'home.hero.subtitle',
+                'SwasthyaConnect bridges the gap between rural communities and premium healthcare. Get instant access to certified doctors, AI diagnostics, and digital prescriptions—even on low bandwidth networks.'
+              )}
             </motion.p>
             
             <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" onClick={() => navigate('/login')} className="group h-14 px-8 text-lg shadow-premium hover:shadow-lg hover:-translate-y-0.5 transition-all">
-                Start Consultation
+                {t('home.hero.ctaPrimary', 'Start Consultation')}
                 <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/symptom-checker')} className="h-14 px-8 text-lg border-slate-200 hover:bg-slate-50 text-slate-700">
-                Check Symptoms
+                {t('home.hero.ctaSecondary', 'Check Symptoms')}
               </Button>
             </motion.div>
 
@@ -189,10 +196,10 @@ export default function Home() {
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
           <div className="mb-8 flex items-center justify-between gap-4">
             <h2 className="text-xl md:text-2xl font-semibold text-slate-800 tracking-tight">
-              Real impact across rural communities
+              {t('home.stats.title', 'Real impact across rural communities')}
             </h2>
             <span className="hidden md:inline-flex text-[11px] uppercase tracking-[0.2em] text-slate-500 font-medium">
-              Scroll to explore
+              {t('home.stats.scroll', 'Scroll to explore')}
             </span>
           </div>
 
@@ -242,8 +249,15 @@ export default function Home() {
       <section className="py-24 bg-white relative">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">How SwasthyaConnect Works</h2>
-            <p className="text-lg text-slate-600">A seamless, guided health experience tailored for both patients and healthcare providers.</p>
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+              {t('home.how.title', 'How SwasthyaConnect Works')}
+            </h2>
+            <p className="text-lg text-slate-600">
+              {t(
+                'home.how.subtitle',
+                'A seamless, guided health experience tailored for both patients and healthcare providers.'
+              )}
+            </p>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8 relative">
@@ -270,8 +284,15 @@ export default function Home() {
       <section className="bg-slate-50 py-24 relative z-10 border-y border-slate-100">
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
           <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Comprehensive Care Ecosystem</h2>
-            <p className="text-lg text-slate-600">Everything you need to confidently manage local healthcare from a single dashboard.</p>
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+              {t('home.features.title', 'Comprehensive Care Ecosystem')}
+            </h2>
+            <p className="text-lg text-slate-600">
+              {t(
+                'home.features.subtitle',
+                'Everything you need to confidently manage local healthcare from a single dashboard.'
+              )}
+            </p>
           </div>
 
           <motion.div
@@ -281,18 +302,21 @@ export default function Home() {
             viewport={{ once: true, margin: "-100px" }}
             variants={staggerContainer}
           >
-            {features.map((feature, idx) => (
+            {features.map((feature, idx) => {
+              const title = t(feature.titleKey, feature.fallbackTitle);
+              const desc = t(feature.descKey, feature.fallbackDesc);
+              return (
               <motion.div key={idx} variants={fadeIn} className="h-full">
                 <Card hoverEffect className="h-full border-slate-200/60 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:border-slate-200 group">
                   <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-inner relative overflow-hidden", feature.bg, feature.color)}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <feature.icon className="h-7 w-7 relative z-10" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">{feature.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">{title}</h3>
+                  <p className="text-slate-600 leading-relaxed">{desc}</p>
                 </Card>
               </motion.div>
-            ))}
+            );})}
           </motion.div>
         </div>
       </section>
@@ -302,9 +326,14 @@ export default function Home() {
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="text-left text-slate-900">
-              <h2 className="text-3xl lg:text-4xl font-extrabold mb-6 tracking-tight text-slate-900">Built for Patients & Healthcare Providers</h2>
+              <h2 className="text-3xl lg:text-4xl font-extrabold mb-6 tracking-tight text-slate-900">
+                {t('home.portals.title', 'Built for Patients & Healthcare Providers')}
+              </h2>
               <p className="text-slate-600 text-lg mb-10 leading-relaxed max-w-lg">
-                Dedicated interfaces cater to unique workflows. Whether you're seeking care or providing it, SwasthyaConnect adapts to your needs seamlessly.
+                {t(
+                  'home.portals.subtitle',
+                  "Dedicated interfaces cater to unique workflows. Whether you're seeking care or providing it, SwasthyaConnect adapts to your needs seamlessly."
+                )}
               </p>
 
               <div className="space-y-8">
@@ -313,8 +342,15 @@ export default function Home() {
                     <Users className="text-primary-600 w-7 h-7" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-900 mb-2">Patient Portal</h4>
-                    <p className="text-slate-600 leading-relaxed">Schedule consultations, view your health records, use AI symptoms checker, and order medications securely.</p>
+                    <h4 className="text-xl font-bold text-slate-900 mb-2">
+                      {t('home.portals.patientTitle', 'Patient Portal')}
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed">
+                      {t(
+                        'home.portals.patientDesc',
+                        'Schedule consultations, view your health records, use AI symptoms checker, and order medications securely.'
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="border-t border-slate-100" />
@@ -323,8 +359,15 @@ export default function Home() {
                     <Shield className="text-emerald-600 w-7 h-7" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-900 mb-2">Doctor Portal</h4>
-                    <p className="text-slate-600 leading-relaxed">Manage your secure patient queue, update digital records immediately after calls, and handle e-prescriptions.</p>
+                    <h4 className="text-xl font-bold text-slate-900 mb-2">
+                      {t('home.portals.doctorTitle', 'Doctor Portal')}
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed">
+                      {t(
+                        'home.portals.doctorDesc',
+                        'Manage your secure patient queue, update digital records immediately after calls, and handle e-prescriptions.'
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -364,16 +407,21 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-50/80 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/2" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50/80 rounded-full blur-[80px] -z-10 -translate-x-1/3 translate-y-1/2" />
         <div className="container mx-auto px-4 max-w-4xl text-center relative z-10">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-slate-900 mb-6 tracking-tight">Ready to prioritize your health?</h2>
+          <h2 className="text-4xl md:text-6xl font-extrabold text-slate-900 mb-6 tracking-tight">
+            {t('home.cta.title', 'Ready to prioritize your health?')}
+          </h2>
           <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
-            Join thousands of patients and doctors who are transforming the future of remote healthcare today.
+            {t(
+              'home.cta.subtitle',
+              'Join thousands of patients and doctors who are transforming the future of remote healthcare today.'
+            )}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button size="lg" className="h-14 px-10 text-lg shadow-premium hover:shadow-xl hover:-translate-y-0.5 transition-all" onClick={() => navigate('/login')}>
-              Get Started for Free
+              {t('home.cta.primary', 'Get Started for Free')}
             </Button>
             <Button size="lg" variant="outline" className="h-14 px-10 text-lg border-slate-200 hover:bg-slate-50 text-slate-700" onClick={() => navigate('/symptom-checker')}>
-              Try Features
+              {t('home.cta.secondary', 'Try Features')}
             </Button>
           </div>
         </div>
