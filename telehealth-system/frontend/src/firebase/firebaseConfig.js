@@ -13,6 +13,9 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:abc123"
 };
 
+// Flag to detect when we're using the built‑in demo config
+export const isDemoFirebase = firebaseConfig.projectId === 'demo-telehealth';
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 

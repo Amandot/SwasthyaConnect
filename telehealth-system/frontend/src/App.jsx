@@ -1,16 +1,24 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase/firebaseConfig';
+import { auth, isDemoFirebase } from './firebase/firebaseConfig';
+import { AnimatePresence } from 'framer-motion';
 
 // Pages
-import Login from './pages/Login.jsx';
+import Home from './pages/Home.jsx';
+import LoginSelection from './pages/LoginSelection.jsx';
+import PatientLogin from './pages/PatientLogin.jsx';
+import DoctorLogin from './pages/DoctorLogin.jsx';
+import PatientSignup from './pages/PatientSignup.jsx';
+import DoctorSignup from './pages/DoctorSignup.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import DoctorDashboard from './pages/DoctorDashboard.jsx';
 import BookAppointment from './pages/BookAppointment.jsx';
 import HealthRecords from './pages/HealthRecords.jsx';
 import Medicines from './pages/Medicines.jsx';
 import Consultation from './pages/Consultation.jsx';
 import SymptomChecker from './pages/SymptomChecker.jsx';
+import Emergency from './pages/Emergency.jsx';
 
 // Components
 import Navbar from './components/Navbar.jsx';
@@ -18,10 +26,31 @@ import Navbar from './components/Navbar.jsx';
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null); // 'patient' or 'doctor'
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      // Primary: Firebase-authenticated user
+      if (currentUser) {
+        setUser(currentUser);
+        const role = localStorage.getItem('userRole') || 'patient';
+        setUserRole(role);
+      } else if (isDemoFirebase) {
+        // Demo fallback: use locally stored fake user if present
+        const storedDemo = localStorage.getItem('demoUser');
+        if (storedDemo) {
+          const demoUser = JSON.parse(storedDemo);
+          setUser(demoUser);
+          const role = localStorage.getItem('userRole') || demoUser.role || 'patient';
+          setUserRole(role);
+        } else {
+          setUser(null);
+          setUserRole(null);
+        }
+      } else {
+        setUser(null);
+        setUserRole(null);
+      }
       setLoading(false);
     });
 
@@ -30,7 +59,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
           <p className="text-slate-600 font-medium">Loading...</p>
@@ -41,42 +70,83 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50">
-        {user && <Navbar user={user} />}
-        <Routes>
-          <Route 
-            path="/login" 
-            element={user ? <Navigate to="/dashboard" /> : <Login />} 
-          />
-          <Route 
-            path="/dashboard" 
-            element={user ? <Dashboard user={user} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/book-appointment" 
-            element={user ? <BookAppointment user={user} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/health-records" 
-            element={user ? <HealthRecords user={user} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/medicines" 
-            element={user ? <Medicines /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/consultation/:roomId" 
-            element={user ? <Consultation user={user} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/symptom-checker" 
-            element={user ? <SymptomChecker /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/" 
-            element={<Navigate to={user ? "/dashboard" : "/login"} />} 
-          />
-        </Routes>
+      <div className="min-h-screen bg-brand-background flex flex-col font-sans">
+        <Navbar user={user} userRole={userRole} />
+        
+        <main className="flex-grow flex flex-col pt-20"> {/* pt-20 to account for fixed navbar */}
+          <AnimatePresence mode="wait">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/home" element={<Home />} />
+              
+              {/* Auth Routes */}
+              <Route 
+                path="/login" 
+                element={user ? <Navigate to={userRole === 'doctor' ? "/doctor-dashboard" : "/dashboard"} /> : <LoginSelection />} 
+              />
+              <Route 
+                path="/signup/patient"
+                element={user ? <Navigate to="/dashboard" /> : <PatientSignup />}
+              />
+              <Route 
+                path="/signup/doctor"
+                element={user ? <Navigate to="/doctor-dashboard" /> : <DoctorSignup />}
+              />
+              <Route 
+                path="/login/patient" 
+                element={user ? <Navigate to="/dashboard" /> : <PatientLogin />} 
+              />
+              <Route 
+                path="/login/doctor" 
+                element={user ? <Navigate to="/doctor-dashboard" /> : <DoctorLogin />} 
+              />
+
+              {/* Protected Patient Routes */}
+              <Route 
+                path="/dashboard" 
+                element={user && userRole === 'patient' ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/book-appointment" 
+                element={user && userRole === 'patient' ? <BookAppointment user={user} /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/health-records" 
+                element={user && userRole === 'patient' ? <HealthRecords user={user} /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/medicines" 
+                element={user && userRole === 'patient' ? <Medicines /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/symptom-checker" 
+                element={user && userRole === 'patient' ? <SymptomChecker /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/emergency" 
+                element={user && userRole === 'patient' ? <Emergency /> : <Navigate to="/login" />} 
+              />
+
+              {/* Protected Doctor Routes */}
+              <Route 
+                path="/doctor-dashboard" 
+                element={user && userRole === 'doctor' ? <DoctorDashboard user={user} /> : <Navigate to="/login" />} 
+              />
+
+              {/* Shared Protected Routes */}
+              <Route 
+                path="/consultation/:roomId" 
+                element={user ? <Consultation user={user} /> : <Navigate to="/login" />} 
+              />
+              
+              {/* Fallback */}
+              <Route 
+                path="/" 
+                element={<Navigate to="/home" />} 
+              />
+            </Routes>
+          </AnimatePresence>
+        </main>
       </div>
     </Router>
   );

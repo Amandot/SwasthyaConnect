@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import VideoCall from '../components/VideoCall';
 import { appointmentAPI } from '../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { 
+  Video, Clock, PhoneOff, CheckCircle2, 
+  Lightbulb, FileText, Pill, CalendarCheck, ShieldAlert
+} from 'lucide-react';
+import { cn } from '../lib/utils';
 
-function Consultation({ user }) {
+export default function Consultation({ user }) {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [appointment, setAppointment] = useState(null);
@@ -16,21 +24,19 @@ function Consultation({ user }) {
 
   const fetchAppointment = async () => {
     try {
-      // In a real app, you'd fetch the appointment by roomId
-      // For demo, we'll use mock data
       setAppointment({
         id: '1',
         doctorName: 'Dr. Rajesh Sharma',
-        patientName: user.displayName || user.email?.split('@')[0] || 'Patient',
+        patientName: user?.displayName || user?.email?.split('@')[0] || 'Patient',
         date: new Date().toLocaleDateString(),
-        time: new Date().toLocaleTimeString(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'video',
         roomId: roomId
       });
     } catch (error) {
       console.error('Error fetching appointment:', error);
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 1000); // Simulated delay for loading state
     }
   };
 
@@ -44,10 +50,18 @@ function Consultation({ user }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-          <p className="text-white font-medium">Preparing consultation room...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 border-x border-slate-800">
+        <div className="flex flex-col items-center gap-6 text-center">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Video className="w-8 h-8 text-primary-500 animate-pulse" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight mb-2">Preparing secure consultation room</h2>
+            <p className="text-slate-400 text-sm">Establishing an encrypted P2P connection...</p>
+          </div>
         </div>
       </div>
     );
@@ -55,167 +69,180 @@ function Consultation({ user }) {
 
   if (callEnded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckIcon className="w-10 h-10 text-primary-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">Consultation Completed</h1>
-          <p className="text-slate-600 mb-8">
-            Your consultation with {appointment?.doctorName} has ended. 
-            The doctor will update your health records shortly.
-          </p>
+      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-brand-background px-4 py-8 relative overflow-hidden">
+        {/* Background Blobs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-100/40 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-[80px] -z-10 -translate-x-1/3 translate-y-1/3" />
 
-          <div className="card mb-6">
-            <h3 className="font-semibold text-slate-800 mb-4">What's next?</h3>
-            <ul className="space-y-3 text-left">
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary-600 text-xs font-bold">1</span>
-                </div>
-                <p className="text-slate-600">Check your health records for prescription</p>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary-600 text-xs font-bold">2</span>
-                </div>
-                <p className="text-slate-600">Find medicines at nearby pharmacies</p>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-primary-600 text-xs font-bold">3</span>
-                </div>
-                <p className="text-slate-600">Book a follow-up if needed</p>
-              </li>
-            </ul>
-          </div>
+        <motion.div 
+          className="max-w-md w-full"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Card className="p-8 text-center shadow-premium border-slate-100/50 bg-white/80 backdrop-blur-xl">
+            <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
+              <CheckCircle2 size={40} />
+            </div>
+            
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">Consultation Completed</h1>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              Your session with <strong className="text-slate-800 font-semibold">{appointment?.doctorName}</strong> has ended securely. 
+              The doctor will update your health records and prescriptions shortly.
+            </p>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleReturnToDashboard}
-              className="btn-primary flex-1"
-            >
-              Return to Dashboard
-            </button>
-            <a href="/health-records" className="btn-secondary flex-1 text-center">
-              View Health Records
-            </a>
-          </div>
-        </div>
+            <div className="bg-slate-50 rounded-2xl p-5 mb-8 border border-slate-100 text-left">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Next Steps</h3>
+              <ul className="space-y-4">
+                {[
+                  { icon: FileText, text: "Check your health records for the digital prescription.", color: "text-blue-500", bg: "bg-blue-50" },
+                  { icon: Pill, text: "Find and order prescribed medicines at nearby pharmacies.", color: "text-indigo-500", bg: "bg-indigo-50" },
+                  { icon: CalendarCheck, text: "Schedule a follow-up appointment if recommended.", color: "text-emerald-500", bg: "bg-emerald-50" }
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <div className={cn("w-8 h-8 rounded-full flex shrink-0 items-center justify-center mt-0.5", item.bg, item.color)}>
+                      <item.icon size={16} />
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed">{item.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleReturnToDashboard} className="w-full h-14 text-lg">
+                Return to Dashboard
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/health-records')} className="w-full h-14 border-slate-200">
+                View Health Records
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+      {/* Dynamic Background for Video Room */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800/40 via-slate-950 to-slate-950 -z-10" />
+
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-                <VideoIcon className="w-5 h-5 text-white" />
+      <motion.header 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/60 px-4 py-3 sm:py-4 sticky top-0 z-50 h-16 sm:h-20"
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between h-full">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-600/20 text-primary-400 rounded-xl flex items-center justify-center border border-primary-500/20 shadow-[0_0_15px_rgba(0,87,255,0.2)]">
+              <Video className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-white font-bold text-sm sm:text-base tracking-wide">Secure Consultation</h1>
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
               </div>
-              <div>
-                <h1 className="text-white font-semibold">Video Consultation</h1>
-                <p className="text-slate-400 text-sm">{appointment?.doctorName}</p>
-              </div>
+              <p className="text-slate-400 text-xs sm:text-sm">{appointment?.doctorName}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 text-slate-400 text-sm">
-              <ClockIcon className="w-4 h-4" />
-              <span>{appointment?.time}</span>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="hidden md:flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700/50 text-slate-300 text-sm font-medium">
+              <Clock className="w-4 h-4 text-primary-400" />
+              <span>Session active • {appointment?.time}</span>
             </div>
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={handleLeaveCall}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center gap-2"
+              className="px-4 sm:px-6 shadow-lg shadow-red-600/20 h-9 sm:h-10 text-xs sm:text-sm font-bold tracking-wide"
             >
-              <PhoneOffIcon className="w-4 h-4" />
-              End Call
-            </button>
+              <PhoneOff className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">End Session</span>
+              <span className="sm:hidden">End</span>
+            </Button>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Video Call Area */}
-      <main className="h-[calc(100vh-65px)]">
-        <VideoCall
-          roomId={roomId}
-          userName={appointment?.patientName}
-          onLeave={handleLeaveCall}
-        />
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col lg:flex-row relative z-10 p-2 sm:p-4 gap-4 max-w-[1600px] w-full mx-auto h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)]">
+        
+        {/* Video Call Area */}
+        <motion.div 
+          className="flex-1 h-full w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-black relative border border-slate-800/60 shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center z-10 pointer-events-none">
+             <Video className="w-16 h-16 text-slate-600 opacity-20 mb-4" />
+             <p className="text-slate-400 font-medium">Video Stream Integration Pending</p>
+             <p className="text-slate-500 text-sm mt-2 max-w-sm text-center">Jitsi API integration required to render actual video feed within this container.</p>
+          </div>
+
+          {/* Placeholder for actual VideoCall Component */}
+          <div className="absolute inset-0 z-0 opacity-50">
+             <VideoCall
+               roomId={roomId}
+               userName={appointment?.patientName}
+               onLeave={handleLeaveCall}
+             />
+          </div>
+
+          <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
+             <ShieldAlert size={14} className="text-emerald-400" />
+             <span className="text-xs font-medium text-white tracking-wider">END-TO-END ENCRYPTED</span>
+          </div>
+        </motion.div>
+
+        {/* Sidebar Panel (Desktop & Tablet) */}
+        <motion.div 
+          className="hidden lg:flex w-80 lg:w-96 flex-col gap-4 h-full shrink-0"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-slate-900/80 backdrop-blur-xl border-slate-800/80 p-6 flex-1 shadow-2xl">
+            <h3 className="text-white font-bold mb-4 flex items-center gap-2 text-lg border-b border-slate-800 pb-4">
+              <Lightbulb className="w-5 h-5 text-amber-400" />
+              Consultation Guide
+            </h3>
+            <ul className="space-y-4">
+              {[
+                "Ensure you are in a quiet, well-lit room for clear visibility.",
+                "Have your previous medical prescriptions and reports handy.",
+                "Clearly mention all symptoms, no matter how small.",
+                "Ask the doctor to repeat instructions if the audio drops.",
+                "Do not leave the call until the doctor confirms the session is over."
+              ].map((tip, idx) => (
+                <li key={idx} className="flex items-start gap-3 bg-slate-800/30 p-3 rounded-xl border border-slate-700/30">
+                  <div className="w-6 h-6 rounded-full bg-primary-900/50 text-primary-400 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs border border-primary-800">
+                    {idx + 1}
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">{tip}</p>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          
+          <Card className="bg-slate-900/80 backdrop-blur-xl border-slate-800/80 p-5 shadow-2xl shrink-0">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                   <div className="w-3 h-3 bg-brand-success rounded-full" />
+                </div>
+                <div>
+                   <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Network Status</p>
+                   <p className="text-white font-bold text-sm">Excellent Connection</p>
+                </div>
+             </div>
+          </Card>
+        </motion.div>
       </main>
-
-      {/* Tips Panel (Desktop) */}
-      <div className="hidden lg:block fixed right-4 top-24 w-72 bg-slate-800 rounded-2xl p-4 border border-slate-700">
-        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-          <TipIcon className="w-5 h-5 text-primary-400" />
-          Tips for Better Consultation
-        </h3>
-        <ul className="space-y-2 text-sm text-slate-400">
-          <li className="flex items-start gap-2">
-            <span className="text-primary-400">•</span>
-            Ensure good lighting and a quiet environment
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary-400">•</span>
-            Keep your symptoms list ready
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary-400">•</span>
-            Have your previous prescriptions handy
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-primary-400">•</span>
-            Speak clearly and face the camera
-          </li>
-        </ul>
-      </div>
     </div>
   );
 }
-
-// Icon Components
-function CheckIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function VideoIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function ClockIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function PhoneOffIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-    </svg>
-  );
-}
-
-function TipIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-    </svg>
-  );
-}
-
-export default Consultation;

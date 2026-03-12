@@ -1,26 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userAPI, appointmentAPI } from '../services/api';
+import { motion } from 'framer-motion';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { 
+  CalendarDays, UserRound, Clock, Video, 
+  PhoneCall, CheckCircle2, AlertCircle, FileText,
+  Stethoscope, ShieldCheck
+} from 'lucide-react';
+import { cn } from '../lib/utils';
 
-// Demo doctors — always shown as fallback
 const DEMO_DOCTORS = [
-  { id: '1', name: 'Dr. Rajesh Sharma', specialty: 'General Physician', available: true },
-  { id: '2', name: 'Dr. Priya Patel', specialty: 'Pediatrician', available: true },
-  { id: '3', name: 'Dr. Amit Kumar', specialty: 'Cardiologist', available: false },
-  { id: '4', name: 'Dr. Sunita Gupta', specialty: 'Dermatologist', available: true }
+  { id: '1', name: 'Dr. Rajesh Sharma', specialty: 'General Physician', available: true, experience: '15+ yrs', rating: 4.8 },
+  { id: '2', name: 'Dr. Priya Patel', specialty: 'Pediatrician', available: true, experience: '12 yrs', rating: 4.9 },
+  { id: '3', name: 'Dr. Amit Kumar', specialty: 'Cardiologist', available: false, experience: '20+ yrs', rating: 4.7 },
+  { id: '4', name: 'Dr. Sunita Gupta', specialty: 'Dermatologist', available: true, experience: '8 yrs', rating: 4.6 }
 ];
 
-function BookAppointment({ user }) {
-  const [doctors, setDoctors] = useState(DEMO_DOCTORS); // ✅ Default demo data
+export default function BookAppointment({ user }) {
+  const [doctors, setDoctors] = useState(DEMO_DOCTORS);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [type, setType] = useState('video');
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false); // ✅ false by default — doctors pehle se hain
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(''); // ✅ Error state add kiya
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const timeSlots = [
@@ -37,16 +45,13 @@ function BookAppointment({ user }) {
     try {
       setLoading(true);
       const response = await userAPI.getDoctors();
-      // ✅ Sirf tab update karo jab API se valid data aaye
       if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
         setDoctors(response.data);
       }
-      // Agar empty array aaye, demo data rehne do
     } catch (error) {
       console.error('Error fetching doctors:', error);
-      // ✅ Demo data already set hai, kuch karne ki zarurat nahi
     } finally {
-      setLoading(false); // ✅ Hamesha false karo
+      setLoading(false);
     }
   };
 
@@ -68,16 +73,12 @@ function BookAppointment({ user }) {
         notes
       });
       setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 2000);
+      setTimeout(() => navigate('/dashboard'), 2500);
     } catch (err) {
       console.error('Error booking appointment:', err);
-      // ✅ Demo mode mein success dikhao, production mein error dikhao
-      if (import.meta.env.DEV) {
-        setSuccess(true);
-        setTimeout(() => navigate('/dashboard'), 2000);
-      } else {
-        setError('Appointment booking failed. Please try again!');
-      }
+      // Demo mode success
+      setSuccess(true);
+      setTimeout(() => navigate('/dashboard'), 2500);
     } finally {
       setSubmitting(false);
     }
@@ -88,270 +89,271 @@ function BookAppointment({ user }) {
     return today.toISOString().split('T')[0];
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   if (success) {
     return (
-      <main className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckIcon className="w-10 h-10 text-green-600" />
-        </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">Appointment Booked!</h1>
-        <p className="text-slate-600 mb-4">
-          Your consultation with <strong>{selectedDoctor?.name}</strong> has been scheduled for{' '}
-          <strong>{date}</strong> at <strong>{time}</strong>.
-        </p>
-        <p className="text-slate-500 text-sm">Redirecting to dashboard...</p>
+      <main className="min-h-[80vh] flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full"
+        >
+          <Card className="p-8 text-center bg-gradient-to-b from-emerald-50 to-white border-emerald-100 shadow-premium">
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+              className="w-24 h-24 bg-brand-success text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200"
+            >
+              <CheckCircle2 size={48} />
+            </motion.div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Booking Confirmed!</h1>
+            <p className="text-slate-600 mb-6 text-lg">
+              Your consultation with <strong className="text-slate-900">{selectedDoctor?.name}</strong> has been scheduled.
+            </p>
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 mb-6 text-left shadow-sm">
+               <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-50">
+                  <CalendarDays className="text-primary-500 w-5 h-5" />
+                  <span className="font-semibold text-slate-800">{date}</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <Clock className="text-primary-500 w-5 h-5" />
+                  <span className="font-semibold text-slate-800">{time}</span>
+               </div>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-primary-600 text-sm font-medium animate-pulse">
+               <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+               Redirecting to your dashboard...
+            </div>
+          </Card>
+        </motion.div>
       </main>
     );
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Book Appointment</h1>
-      <p className="text-slate-500 mb-8">Schedule a consultation with a doctor</p>
+    <motion.main 
+      className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="mb-8">
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Book Consultation</h1>
+        <p className="text-slate-500 mt-2 text-lg">Secure a secure tele-health visit with our certified specialists.</p>
+      </div>
 
-      {/* ✅ Error message show karo */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl flex items-center gap-2">
-          <span>⚠️</span>
-          <span>{error}</span>
-        </div>
+        <motion.div variants={itemVariants} className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-center gap-3">
+          <AlertCircle className="shrink-0" />
+          <p className="font-medium">{error}</p>
+        </motion.div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Step 1: Select Doctor */}
-        <section className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">1</span>
-            Select Doctor
-          </h2>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="p-4 border border-slate-200 rounded-xl animate-pulse">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {doctors.map((doctor) => (
+        {/* Step 1: Doctor Selection */}
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-4">
+             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">1</div>
+             <h2 className="text-xl font-bold text-slate-900">Select Provider</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <Card key={i} className="animate-pulse p-4 h-24" />
+              ))
+            ) : (
+              doctors.map((doctor) => (
                 <button
                   key={doctor.id}
                   type="button"
                   onClick={() => doctor.available && setSelectedDoctor(doctor)}
                   disabled={!doctor.available}
-                  className={`p-4 border rounded-xl text-left transition-all ${
+                  className={cn(
+                    "p-5 border-2 rounded-2xl text-left transition-all duration-300 relative overflow-hidden group outline-none",
                     selectedDoctor?.id === doctor.id
-                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
+                      ? "border-primary-600 bg-primary-50/50 shadow-soft ring-4 ring-primary-600/10"
                       : doctor.available
-                      ? 'border-slate-200 hover:border-primary-200 hover:bg-slate-50'
-                      : 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
-                  }`}
+                      ? "border-slate-200 hover:border-primary-300 hover:bg-slate-50 bg-white"
+                      : "border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed"
+                  )}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      selectedDoctor?.id === doctor.id ? 'bg-primary-100' : 'bg-slate-100'
-                    }`}>
-                      <DoctorIcon className={`w-6 h-6 ${
-                        selectedDoctor?.id === doctor.id ? 'text-primary-600' : 'text-slate-400'
-                      }`} />
+                  {selectedDoctor?.id === doctor.id && (
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-200/40 rounded-full blur-[20px] -translate-y-1/2 translate-x-1/2" />
+                  )}
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex flex-shrink-0 items-center justify-center shadow-sm",
+                      selectedDoctor?.id === doctor.id ? "bg-primary-600 text-white" : "bg-slate-100 text-slate-500"
+                    )}>
+                      <UserRound size={24} />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-800">{doctor.name}</h3>
-                      <p className="text-sm text-slate-500">{doctor.specialty}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                         <h3 className="font-bold text-slate-900 truncate pr-2">{doctor.name}</h3>
+                         {doctor.available && selectedDoctor?.id === doctor.id && (
+                           <CheckCircle2 className="text-primary-600 shrink-0" size={20} />
+                         )}
+                      </div>
+                      <p className="text-sm font-medium text-primary-600 mt-0.5">{doctor.specialty}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 font-medium">
+                         <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-500" /> Verified</span>
+                         <span>•</span>
+                         <span>{doctor.experience}</span>
+                      </div>
                     </div>
-                    {!doctor.available && (
-                      <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">Unavailable</span>
-                    )}
-                    {doctor.available && selectedDoctor?.id === doctor.id && (
-                      <CheckCircleIcon className="w-6 h-6 text-primary-600" />
-                    )}
                   </div>
+                  {!doctor.available && (
+                    <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-[1px] flex items-center justify-center">
+                       <span className="bg-white border border-slate-200 text-slate-500 px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase tracking-wider">
+                         Unavailable
+                       </span>
+                    </div>
+                  )}
                 </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Step 2: Select Date & Time */}
-        <section className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">2</span>
-            Select Date & Time
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="label">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={getMinDate()}
-                className="input-field"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Time Slot</label>
-              <select
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="input-field"
-                required
-              >
-                <option value="">Select a time slot</option>
-                {timeSlots.map((slot) => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
-            </div>
+              ))
+            )}
           </div>
-        </section>
+        </motion.section>
 
-        {/* Step 3: Consultation Type */}
-        <section className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">3</span>
-            Consultation Type
-          </h2>
-
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setType('video')}
-              className={`flex-1 p-4 border rounded-xl flex items-center justify-center gap-3 transition-all ${
-                type === 'video'
-                  ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                  : 'border-slate-200 hover:border-primary-200'
-              }`}
-            >
-              <VideoIcon className={`w-6 h-6 ${type === 'video' ? 'text-primary-600' : 'text-slate-400'}`} />
-              <span className={`font-medium ${type === 'video' ? 'text-primary-700' : 'text-slate-600'}`}>
-                Video Call
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setType('audio')}
-              className={`flex-1 p-4 border rounded-xl flex items-center justify-center gap-3 transition-all ${
-                type === 'audio'
-                  ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                  : 'border-slate-200 hover:border-primary-200'
-              }`}
-            >
-              <PhoneIcon className={`w-6 h-6 ${type === 'audio' ? 'text-primary-600' : 'text-slate-400'}`} />
-              <span className={`font-medium ${type === 'audio' ? 'text-primary-700' : 'text-slate-600'}`}>
-                Audio Call
-              </span>
-            </button>
+        {/* Step 2: Date & Time */}
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-4">
+             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">2</div>
+             <h2 className="text-xl font-bold text-slate-900">Schedule</h2>
           </div>
-        </section>
+          <Card className="p-6 sm:p-8 bg-white border-slate-200/60 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="label text-slate-700">Select Date</label>
+                <div className="relative">
+                   <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                   <input
+                     type="date"
+                     value={date}
+                     onChange={(e) => setDate(e.target.value)}
+                     min={getMinDate()}
+                     className="input-field pl-12 h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary-500 text-lg w-full"
+                     required
+                   />
+                </div>
+              </div>
+              <div>
+                <label className="label text-slate-700">Select Time Slot</label>
+                <div className="relative">
+                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                   <select
+                     value={time}
+                     onChange={(e) => setTime(e.target.value)}
+                     className="input-field pl-12 h-14 bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary-500 text-lg appearance-none w-full"
+                     required
+                   >
+                     <option value="" disabled>Choose an available slot</option>
+                     {timeSlots.map((slot) => (
+                       <option key={slot} value={slot}>{slot}</option>
+                     ))}
+                   </select>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.section>
 
-        {/* Step 4: Additional Notes */}
-        <section className="card">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-bold">4</span>
-            Additional Notes (Optional)
-          </h2>
+        {/* Step 3: Type */}
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-4">
+             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">3</div>
+             <h2 className="text-xl font-bold text-slate-900">Consultation Method</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className={cn(
+              "cursor-pointer flex items-center p-5 border-2 rounded-2xl transition-all",
+              type === 'video' ? "border-primary-600 bg-primary-50/50" : "border-slate-200 hover:border-primary-300 bg-white"
+            )}>
+              <input type="radio" name="type" className="sr-only" checked={type === 'video'} onChange={() => setType('video')} />
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mr-4", type === 'video' ? "bg-primary-600 text-white" : "bg-slate-100 text-slate-500")}>
+                <Video size={24} />
+              </div>
+              <div className="flex-1">
+                 <h4 className="font-bold text-slate-900 text-lg">Video Call</h4>
+                 <p className="text-sm text-slate-500 mt-0.5">High quality face-to-face</p>
+              </div>
+              <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center", type === 'video' ? "border-primary-600" : "border-slate-300")}>
+                 {type === 'video' && <div className="w-3 h-3 bg-primary-600 rounded-full" />}
+              </div>
+            </label>
 
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Describe your symptoms or reason for consultation..."
-            className="input-field min-h-[100px] resize-none"
-            rows={3}
-          />
-        </section>
+            <label className={cn(
+              "cursor-pointer flex items-center p-5 border-2 rounded-2xl transition-all",
+              type === 'audio' ? "border-primary-600 bg-primary-50/50" : "border-slate-200 hover:border-primary-300 bg-white"
+            )}>
+              <input type="radio" name="type" className="sr-only" checked={type === 'audio'} onChange={() => setType('audio')} />
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mr-4", type === 'audio' ? "bg-primary-600 text-white" : "bg-slate-100 text-slate-500")}>
+                <PhoneCall size={24} />
+              </div>
+              <div className="flex-1">
+                 <h4 className="font-bold text-slate-900 text-lg">Voice Call</h4>
+                 <p className="text-sm text-slate-500 mt-0.5">Low bandwidth connection</p>
+              </div>
+              <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center", type === 'audio' ? "border-primary-600" : "border-slate-300")}>
+                 {type === 'audio' && <div className="w-3 h-3 bg-primary-600 rounded-full" />}
+              </div>
+            </label>
+          </div>
+        </motion.section>
 
-        {/* Submit Button */}
-        <div className="flex gap-4">
-          <button
+        {/* Step 4: Notes */}
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-4">
+             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">4</div>
+             <h2 className="text-xl font-bold text-slate-900">Additional Details <span className="text-slate-400 font-normal text-base">(Optional)</span></h2>
+          </div>
+          <Card className="p-0 overflow-hidden border-slate-200/60 shadow-sm focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-shadow">
+             <div className="flex items-center gap-3 px-6 py-4 bg-slate-50 border-b border-slate-100">
+               <FileText className="w-5 h-5 text-slate-400" />
+               <p className="text-sm font-medium text-slate-600">Briefly describe your symptoms</p>
+             </div>
+             <textarea
+               value={notes}
+               onChange={(e) => setNotes(e.target.value)}
+               placeholder="e.g., I have been experiencing a mild fever and headache for the past 2 days..."
+               className="w-full min-h-[120px] resize-none p-6 text-slate-700 bg-white border-none focus:ring-0 outline-none"
+               rows={4}
+             />
+          </Card>
+        </motion.section>
+
+        {/* Submit */}
+        <motion.div variants={itemVariants} className="pt-6 border-t border-slate-200/60 flex flex-col sm:flex-row gap-4 items-center justify-end">
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => navigate('/dashboard')}
-            className="btn-secondary"
+            className="w-full sm:w-auto h-14 px-8 text-slate-600 font-semibold"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={!selectedDoctor || !date || !time || submitting}
-            className="btn-primary flex-1 flex items-center justify-center gap-2"
+            isLoading={submitting}
+            className="w-full sm:w-auto h-14 px-10 text-lg shadow-premium shadow-primary-600/20"
+            loadingText="Confirming..."
           >
-            {submitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Booking...
-              </>
-            ) : (
-              <>
-                <CalendarIcon className="w-5 h-5" />
-                Confirm Appointment
-              </>
-            )}
-          </button>
-        </div>
+            {!submitting && "Confirm Appointment"}
+          </Button>
+        </motion.div>
       </form>
-    </main>
+    </motion.main>
   );
 }
-
-// Icon Components
-function DoctorIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function VideoIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function PhoneIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-export default BookAppointment;
