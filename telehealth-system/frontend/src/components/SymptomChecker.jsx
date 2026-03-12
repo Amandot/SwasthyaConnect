@@ -21,9 +21,8 @@ export default function SymptomCheckerComponent() {
 
   const handleAddSymptom = (symptom) => {
     if (symptoms.trim()) {
-      // Check if symptom already exists to avoid duplicates
       if (!symptoms.toLowerCase().includes(symptom.toLowerCase())) {
-         setSymptoms(prev => `${prev}, ${symptom}`);
+        setSymptoms(prev => `${prev}, ${symptom}`);
       }
     } else {
       setSymptoms(symptom);
@@ -38,17 +37,22 @@ export default function SymptomCheckerComponent() {
     setError(null);
     setResult(null);
 
-    // Simulated AI Processing Delay for better UX
     setTimeout(async () => {
       try {
         const response = await aiAPI.checkSymptoms(symptoms);
-        setResult(response.data);
+        // ✅ analysis ko directly destructure karke store karo
+        const { analysis, disclaimer, symptoms: sym } = response.data;
+        setResult({ analysis, disclaimer, symptoms: sym });
       } catch (err) {
-        // Fallback demo data
+        console.error('API Error:', err);
         setResult({
-          analysis: "Based on the symptoms provided, you may be experiencing a viral infection or seasonal flu. It is recommended to rest, stay hydrated, and monitor your temperature.",
-          disclaimer: "This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.",
-          urgency: symptoms.toLowerCase().includes('chest pain') || symptoms.toLowerCase().includes('shortness of breath') ? 'high' : 'medium'
+          analysis: {
+            possibleConditions: ['Viral Infection', 'Seasonal Flu'],
+            severity: 'mild',
+            advice: ['Rest and stay hydrated', 'Monitor your temperature', 'Take paracetamol if needed'],
+            whenToSeeDoctor: ['Fever lasts more than 3 days', 'Difficulty breathing', 'Symptoms worsen']
+          },
+          disclaimer: 'Demo response. This is AI-generated advice and should not replace professional medical consultation.'
         });
       } finally {
         setLoading(false);
@@ -72,28 +76,35 @@ export default function SymptomCheckerComponent() {
     visible: { opacity: 1, y: 0 }
   };
 
+  // ✅ Severity ke hisaab se color decide karta hai
+  const getSeverityStyle = (severity) => {
+    if (severity === 'emergency') return 'bg-red-100 text-red-700 border border-red-200';
+    if (severity === 'moderate') return 'bg-amber-100 text-amber-700 border border-amber-200';
+    return 'bg-green-100 text-green-700 border border-green-200';
+  };
+
   return (
-    <motion.div 
+    <motion.div
       className="max-w-3xl mx-auto space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       <motion.div variants={itemVariants} className="text-center mb-8">
-         <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Activity size={32} />
-         </div>
-         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">AI Symptom Checker</h1>
-         <p className="text-slate-500 mt-2 text-lg">
-            Describe how you are feeling, and our AI will provide instant health guidance.
-         </p>
+        <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Activity size={32} />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">AI Symptom Checker</h1>
+        <p className="text-slate-500 mt-2 text-lg">
+          Describe how you are feeling, and our AI will provide instant health guidance.
+        </p>
       </motion.div>
 
       <AnimatePresence mode="wait">
         {!result && (
-          <motion.form 
+          <motion.form
             key="form"
-            onSubmit={handleSubmit} 
+            onSubmit={handleSubmit}
             className="space-y-6"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -103,7 +114,7 @@ export default function SymptomCheckerComponent() {
               <div className="space-y-6">
                 <div>
                   <label className="label flex items-center gap-2 text-slate-700">
-                    <Sparkles className="w-4 h-4 text-primary-500 text-sm" /> 
+                    <Sparkles className="w-4 h-4 text-primary-500" />
                     What symptoms are you experiencing?
                   </label>
                   <textarea
@@ -136,12 +147,13 @@ export default function SymptomCheckerComponent() {
                     type="submit"
                     disabled={!symptoms.trim() || loading}
                     className="flex-1 h-14 text-lg"
-                    isLoading={loading}
-                    loadingText="Analyzing Symptoms..."
                   >
-                    {!loading && <><Search className="w-5 h-5 mr-2" /> Analyze Symptoms</>}
+                    {loading
+                      ? 'Analyzing Symptoms...'
+                      : <><Search className="w-5 h-5 mr-2" /> Analyze Symptoms</>
+                    }
                   </Button>
-                  
+
                   {symptoms && (
                     <Button
                       type="button"
@@ -156,7 +168,6 @@ export default function SymptomCheckerComponent() {
               </div>
             </Card>
 
-            {/* Information Card */}
             {!loading && (
               <motion.div variants={itemVariants} className="mt-8">
                 <Card className="bg-primary-50/50 border-primary-100 p-6 flex flex-col sm:flex-row items-start gap-4">
@@ -166,7 +177,7 @@ export default function SymptomCheckerComponent() {
                   <div>
                     <h4 className="font-bold text-primary-900 mb-1">How it works</h4>
                     <p className="text-primary-700/80 text-sm leading-relaxed">
-                      Our AI model analyzes your symptoms against a vast medical database to suggest potential causes and next steps. 
+                      Our AI model analyzes your symptoms against a vast medical database to suggest potential causes and next steps.
                       This tool is designed to help you prepare for a consultation, not to replace professional medical advice.
                     </p>
                   </div>
@@ -176,9 +187,9 @@ export default function SymptomCheckerComponent() {
           </motion.form>
         )}
 
-        {/* Results Section */}
+        {/* ✅ Results Section */}
         {result && (
-          <motion.div 
+          <motion.div
             key="results"
             className="space-y-6"
             initial={{ opacity: 0, y: 20 }}
@@ -190,23 +201,69 @@ export default function SymptomCheckerComponent() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/3" />
                 <h3 className="text-2xl font-bold flex items-center gap-3 relative z-10">
                   <Activity className="w-8 h-8 opacity-80" />
-                  Analysis complete
+                  Analysis Complete
                 </h3>
                 <p className="mt-2 text-primary-100">Based on your reported symptoms.</p>
               </div>
-              
-              <div className="p-6 sm:p-8 space-y-8">
-                <div>
-                  <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <Sparkles className="text-primary-500 w-5 h-5" /> Possible Conditions & Advice
-                  </h4>
-                  <div className="prose prose-slate prose-lg max-w-none">
-                    <div className="bg-slate-50 p-6 rounded-2xl text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-wrap">
-                      {result.analysis}
-                    </div>
-                  </div>
-                </div>
 
+              <div className="p-6 sm:p-8 space-y-6">
+
+                {/* ✅ Severity Badge */}
+                {result.analysis?.severity && (
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold capitalize ${getSeverityStyle(result.analysis.severity)}`}>
+                    <AlertTriangle className="w-4 h-4" />
+                    Severity: {result.analysis.severity}
+                  </div>
+                )}
+
+                {/* ✅ Possible Conditions */}
+                {result.analysis?.possibleConditions?.length > 0 && (
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h5 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary-500" /> Possible Conditions
+                    </h5>
+                    <ul className="space-y-2">
+                      {result.analysis.possibleConditions.map((c, i) => (
+                        <li key={i} className="flex items-center gap-2 text-slate-700">
+                          <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0" />
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* ✅ Advice */}
+                {result.analysis?.advice?.length > 0 && (
+                  <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
+                    <h5 className="font-semibold text-blue-900 mb-3">Recommended Advice</h5>
+                    <ul className="space-y-2">
+                      {result.analysis.advice.map((a, i) => (
+                        <li key={i} className="flex items-center gap-2 text-blue-800 text-sm">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+                          {a}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* ✅ When to See Doctor */}
+                {result.analysis?.whenToSeeDoctor?.length > 0 && (
+                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100">
+                    <h5 className="font-semibold text-red-900 mb-3">See a Doctor If</h5>
+                    <ul className="space-y-2">
+                      {result.analysis.whenToSeeDoctor.map((w, i) => (
+                        <li key={i} className="flex items-center gap-2 text-red-800 text-sm">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          {w}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* ✅ Disclaimer */}
                 <div className="p-5 bg-amber-50 border border-amber-200/60 rounded-2xl flex items-start gap-4">
                   <div className="bg-amber-100/80 p-2 rounded-xl shrink-0">
                     <AlertTriangle className="w-6 h-6 text-amber-600" />
@@ -214,7 +271,7 @@ export default function SymptomCheckerComponent() {
                   <div>
                     <h4 className="font-bold text-amber-900 mb-1">Medical Disclaimer</h4>
                     <p className="text-sm text-amber-800 leading-relaxed">
-                      {result.disclaimer || 'This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.'}
+                      {result.disclaimer || 'This is AI-generated advice and should not replace professional medical consultation.'}
                     </p>
                   </div>
                 </div>
@@ -226,8 +283,8 @@ export default function SymptomCheckerComponent() {
                   >
                     Consult a Doctor Now <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
-                  <Button 
-                    onClick={handleClear} 
+                  <Button
+                    onClick={handleClear}
                     variant="outline"
                     className="sm:w-auto h-14 px-8"
                   >
