@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { medicineAPI } from '../services/api';
 import { motion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -8,26 +7,19 @@ import {
   CheckCircle2, XCircle, ChevronRight 
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { medicalStores } from '../data/medicalStores';
 
 export default function Medicines() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [medicines, setMedicines] = useState([]);
+  const [medicines, setMedicines] = useState({});
   const [pharmacies, setPharmacies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
-    fetchPharmacies();
+    // Always use real local pharmacies data with full details
+    setPharmacies(medicalStores);
   }, []);
-
-  const fetchPharmacies = async () => {
-    try {
-      const response = await medicineAPI.getPharmacies();
-      setPharmacies(response.data);
-    } catch (error) {
-      setPharmacies(['Sharma Pharmacy', 'Village Pharmacy', 'Health Plus', 'Gupta Medical Store']);
-    }
-  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -35,22 +27,20 @@ export default function Medicines() {
 
     setLoading(true);
     setSearched(true);
-    try {
-      const response = await medicineAPI.searchMedicines(searchQuery);
-      setMedicines(response.data);
-    } catch (error) {
-      const demoMedicines = {
-        [searchQuery]: [
-          { pharmacy: 'Sharma Pharmacy', available: true, price: 25, distance: 1.2 },
-          { pharmacy: 'Village Pharmacy', available: false, price: null, distance: 2.5 },
-          { pharmacy: 'Health Plus', available: true, price: 28, distance: 3.1 },
-          { pharmacy: 'Gupta Medical Store', available: true, price: 22, distance: 4.0 }
-        ]
-      };
-      setMedicines(demoMedicines);
-    } finally {
-      setLoading(false);
-    }
+    // Always use real local pharmacies data to build availability
+    const demoAvailability = medicalStores.map((store, index) => ({
+      pharmacy: store.name,
+      available: index === medicalStores.length - 1 ? true : Math.random() > 0.3,
+      price: Math.floor(Math.random() * 50) + 20,
+      distance: (index + 1) * 0.8,
+    }));
+
+    const demoMedicines = {
+      [searchQuery]: demoAvailability,
+    };
+
+    setMedicines(demoMedicines);
+    setLoading(false);
   };
 
   const commonMedicines = [
@@ -64,14 +54,17 @@ export default function Medicines() {
     setSearched(true);
     
     setTimeout(() => {
+      const demoAvailability = medicalStores.map((store, index) => ({
+        pharmacy: store.name,
+        available: index === medicalStores.length - 1 ? true : Math.random() > 0.3,
+        price: Math.floor(Math.random() * 50) + 20,
+        distance: (index + 1) * 0.8,
+      }));
+
       const demoMedicines = {
-        [medicine]: [
-          { pharmacy: 'Sharma Pharmacy', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 1.2 },
-          { pharmacy: 'Village Pharmacy', available: Math.random() > 0.5, price: Math.floor(Math.random() * 50) + 10, distance: 2.5 },
-          { pharmacy: 'Health Plus', available: Math.random() > 0.3, price: Math.floor(Math.random() * 50) + 10, distance: 3.1 },
-          { pharmacy: 'Gupta Medical Store', available: Math.random() > 0.4, price: Math.floor(Math.random() * 50) + 10, distance: 4.0 }
-        ]
+        [medicine]: demoAvailability,
       };
+
       setMedicines(demoMedicines);
       setLoading(false);
     }, 600);
@@ -164,35 +157,87 @@ export default function Medicines() {
                   </div>
 
                   <div className="divide-y divide-slate-100">
-                    {availability.sort((a, b) => (b.available === a.available) ? 0 : a.available ? 1 : -1).map((item, index) => (
-                      <div key={index} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
-                        <div className="flex items-start gap-4">
-                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 border", item.available ? 'bg-emerald-50 text-brand-success border-emerald-100' : 'bg-red-50 text-brand-emergency border-red-100')}>
-                            {item.available ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-slate-900">{item.pharmacy}</h3>
-                            <div className="flex items-center gap-3 mt-1 text-sm">
-                              <span className={cn("font-semibold flex items-center gap-1", item.available ? 'text-brand-success' : 'text-brand-emergency')}>
-                                <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
-                                {item.available ? 'In Stock' : 'Out of Stock'}
-                              </span>
-                              <span className="text-slate-400">•</span>
-                              <span className="text-slate-500">{item.distance} km away</span>
-                            </div>
-                          </div>
-                        </div>
+                    {availability
+                      .sort((a, b) =>
+                        b.available === a.available ? 0 : a.available ? 1 : -1
+                      )
+                      .map((item, index) => {
+                        const storeDetails = medicalStores.find(
+                          (store) => store.name === item.pharmacy
+                        );
 
-                        {item.available && item.price && (
-                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
-                            <p className="text-xl font-bold text-slate-900">₹{item.price}</p>
-                            <Button variant="ghost" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8">
-                              <Navigation className="w-4 h-4 mr-1.5" /> Directions
-                            </Button>
+                        return (
+                          <div
+                            key={index}
+                            className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div
+                                className={cn(
+                                  'w-10 h-10 rounded-full flex items-center justify-center shrink-0 border',
+                                  item.available
+                                    ? 'bg-emerald-50 text-brand-success border-emerald-100'
+                                    : 'bg-red-50 text-brand-emergency border-red-100'
+                                )}
+                              >
+                                {item.available ? (
+                                  <CheckCircle2 size={24} />
+                                ) : (
+                                  <XCircle size={24} />
+                                )}
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                  {item.pharmacy}
+                                </h3>
+                                {storeDetails && (
+                                  <p className="text-sm text-slate-500">
+                                    {storeDetails.address}, {storeDetails.city}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 mt-1 text-sm">
+                                  <span
+                                    className={cn(
+                                      'font-semibold flex items-center gap-1',
+                                      item.available
+                                        ? 'text-brand-success'
+                                        : 'text-brand-emergency'
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        'w-2 h-2 rounded-full',
+                                        item.available
+                                          ? 'bg-brand-success'
+                                          : 'bg-brand-emergency'
+                                      )}
+                                    />
+                                    {item.available ? 'In Stock' : 'Out of Stock'}
+                                  </span>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="text-slate-500">
+                                    {item.distance} km away
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {item.available && item.price && (
+                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
+                                <p className="text-xl font-bold text-slate-900">
+                                  ₹{item.price}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8"
+                                >
+                                  <Navigation className="w-4 h-4 mr-1.5" /> Directions
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
                 </Card>
               </motion.div>
@@ -225,8 +270,17 @@ export default function Medicines() {
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
                   <Pill size={24} />
                 </div>
-                <h3 className="font-bold text-slate-900 mb-1">{pharmacy}</h3>
-                <p className="text-sm text-slate-500 mb-4">{(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now</p>
+                <h3 className="font-bold text-slate-900 mb-1">
+                  {typeof pharmacy === 'string' ? pharmacy : pharmacy.name}
+                </h3>
+                {typeof pharmacy !== 'string' && (
+                  <p className="text-xs text-slate-500 mb-1">
+                    {pharmacy.address}, {pharmacy.city}
+                  </p>
+                )}
+                <p className="text-sm text-slate-500 mb-4">
+                  {(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now
+                </p>
                 <div className="mt-auto flex items-center text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
                   Get Directions <ChevronRight className="w-4 h-4 ml-1" />
                 </div>

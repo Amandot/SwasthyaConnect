@@ -1,0 +1,35 @@
+
+
+  VITE v5.4.21  ready in 328 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+10:53:02 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css
+10:53:07 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x2)
+10:53:14 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x3)
+10:53:19 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x4)
+10:53:39 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x5)
+10:53:39 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x6)
+10:53:39 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x7)
+10:53:39 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x8)
+10:53:40 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x9)
+10:53:40 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x10)
+10:53:40 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x11)
+10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:40 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x13)
+10:53:41 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x14)
+10:53:41 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x15)
+10:53:41 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x16)
+10:53:42 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x17)
+10:53:42 PM [vite] hmr update /src/pages/Home.jsx, /src/index.css (x18)
+c
+
+
+^C10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:zsh: command not found: dev10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:zsh: command not found: dev10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:zsh: command not found: dev10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:zsh: command not found: dev10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)
+10:53:zsh: command not found: dev10:53:40 Pe] hmr update /src/pages/Home.jsx, /src/index.css (x12)

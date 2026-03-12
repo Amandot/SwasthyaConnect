@@ -38,22 +38,26 @@ export default function SymptomCheckerComponent() {
     setError(null);
     setResult(null);
 
-    // Simulated AI Processing Delay for better UX
-    setTimeout(async () => {
-      try {
-        const response = await aiAPI.checkSymptoms(symptoms);
-        setResult(response.data);
-      } catch (err) {
-        // Fallback demo data
-        setResult({
-          analysis: "Based on the symptoms provided, you may be experiencing a viral infection or seasonal flu. It is recommended to rest, stay hydrated, and monitor your temperature.",
-          disclaimer: "This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.",
-          urgency: symptoms.toLowerCase().includes('chest pain') || symptoms.toLowerCase().includes('shortness of breath') ? 'high' : 'medium'
-        });
-      } finally {
-        setLoading(false);
-      }
-    }, 1500);
+  try {
+    const response = await aiAPI.checkSymptoms(symptoms);
+    setResult(response.data);
+  } catch (err) {
+    // Fallback demo data if API call fails
+    setResult({
+      analysis:
+        "Based on the symptoms provided, you may be experiencing a viral infection or seasonal flu. It is recommended to rest, stay hydrated, and monitor your temperature.",
+      disclaimer:
+        "This is AI-generated advice and should not replace professional medical consultation. Please consult a doctor for accurate diagnosis and treatment.",
+      urgency: symptoms
+        .toLowerCase()
+        .includes('chest pain') ||
+        symptoms.toLowerCase().includes('shortness of breath')
+        ? 'high'
+        : 'medium'
+    });
+  } finally {
+    setLoading(false);
+  }
   };
 
   const handleClear = () => {
