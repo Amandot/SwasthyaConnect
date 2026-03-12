@@ -1,0 +1,19 @@
+{
+  "name": "telehealth-server",
+  "version": "1.0.0",
+  "description": "Rural TeleHealth Access System Backend",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^12.0.0",
+    "axios": "^1.6.2",
+    "openai": "^4.24.1"
+  }
+}
