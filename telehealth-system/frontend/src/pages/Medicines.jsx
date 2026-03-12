@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { medicineAPI } from '../services/api';
 import { motion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -11,15 +12,24 @@ import { medicalStores } from '../data/medicalStores';
 
 export default function Medicines() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [medicines, setMedicines] = useState({});
+  const [medicines, setMedicines] = useState([]);
   const [pharmacies, setPharmacies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   useEffect(() => {
-    // Always use real local pharmacies data with full details
-    setPharmacies(medicalStores);
+    fetchPharmacies();
   }, []);
+
+  const fetchPharmacies = async () => {
+    try {
+      const response = await medicineAPI.getPharmacies();
+      setPharmacies(response.data);
+    } catch (error) {
+      // Fallback to real local pharmacies data
+      setPharmacies(medicalStores.map((store) => store.name));
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -27,20 +37,26 @@ export default function Medicines() {
 
     setLoading(true);
     setSearched(true);
-    // Always use real local pharmacies data to build availability
-    const demoAvailability = medicalStores.map((store, index) => ({
-      pharmacy: store.name,
-      available: index === medicalStores.length - 1 ? true : Math.random() > 0.3,
-      price: Math.floor(Math.random() * 50) + 20,
-      distance: (index + 1) * 0.8,
-    }));
+    try {
+      const response = await medicineAPI.searchMedicines(searchQuery);
+      setMedicines(response.data);
+    } catch (error) {
+      // Fallback: build demo availability data using real pharmacies
+      const demoAvailability = medicalStores.map((store, index) => ({
+        pharmacy: store.name,
+        available: index === medicalStores.length - 1 ? true : Math.random() > 0.3,
+        price: Math.floor(Math.random() * 50) + 20,
+        distance: (index + 1) * 0.8,
+      }));
 
-    const demoMedicines = {
-      [searchQuery]: demoAvailability,
-    };
+      const demoMedicines = {
+        [searchQuery]: demoAvailability,
+      };
 
-    setMedicines(demoMedicines);
-    setLoading(false);
+      setMedicines(demoMedicines);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const commonMedicines = [
@@ -157,87 +173,35 @@ export default function Medicines() {
                   </div>
 
                   <div className="divide-y divide-slate-100">
-                    {availability
-                      .sort((a, b) =>
-                        b.available === a.available ? 0 : a.available ? 1 : -1
-                      )
-                      .map((item, index) => {
-                        const storeDetails = medicalStores.find(
-                          (store) => store.name === item.pharmacy
-                        );
-
-                        return (
-                          <div
-                            key={index}
-                            className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors"
-                          >
-                            <div className="flex items-start gap-4">
-                              <div
-                                className={cn(
-                                  'w-10 h-10 rounded-full flex items-center justify-center shrink-0 border',
-                                  item.available
-                                    ? 'bg-emerald-50 text-brand-success border-emerald-100'
-                                    : 'bg-red-50 text-brand-emergency border-red-100'
-                                )}
-                              >
-                                {item.available ? (
-                                  <CheckCircle2 size={24} />
-                                ) : (
-                                  <XCircle size={24} />
-                                )}
-                              </div>
-                              <div>
-                                <h3 className="text-lg font-bold text-slate-900">
-                                  {item.pharmacy}
-                                </h3>
-                                {storeDetails && (
-                                  <p className="text-sm text-slate-500">
-                                    {storeDetails.address}, {storeDetails.city}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-3 mt-1 text-sm">
-                                  <span
-                                    className={cn(
-                                      'font-semibold flex items-center gap-1',
-                                      item.available
-                                        ? 'text-brand-success'
-                                        : 'text-brand-emergency'
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        'w-2 h-2 rounded-full',
-                                        item.available
-                                          ? 'bg-brand-success'
-                                          : 'bg-brand-emergency'
-                                      )}
-                                    />
-                                    {item.available ? 'In Stock' : 'Out of Stock'}
-                                  </span>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-slate-500">
-                                    {item.distance} km away
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {item.available && item.price && (
-                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
-                                <p className="text-xl font-bold text-slate-900">
-                                  ₹{item.price}
-                                </p>
-                                <Button
-                                  variant="ghost"
-                                  className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8"
-                                >
-                                  <Navigation className="w-4 h-4 mr-1.5" /> Directions
-                                </Button>
-                              </div>
-                            )}
+                    {availability.sort((a, b) => (b.available === a.available) ? 0 : a.available ? 1 : -1).map((item, index) => (
+                      <div key={index} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                        <div className="flex items-start gap-4">
+                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 border", item.available ? 'bg-emerald-50 text-brand-success border-emerald-100' : 'bg-red-50 text-brand-emergency border-red-100')}>
+                            {item.available ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
                           </div>
-                        );
-                      })}
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-900">{item.pharmacy}</h3>
+                            <div className="flex items-center gap-3 mt-1 text-sm">
+                              <span className={cn("font-semibold flex items-center gap-1", item.available ? 'text-brand-success' : 'text-brand-emergency')}>
+                                <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
+                                {item.available ? 'In Stock' : 'Out of Stock'}
+                              </span>
+                              <span className="text-slate-400">•</span>
+                              <span className="text-slate-500">{item.distance} km away</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {item.available && item.price && (
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 sm:border-0 pt-4 sm:pt-0">
+                            <p className="text-xl font-bold text-slate-900">₹{item.price}</p>
+                            <Button variant="ghost" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1 mt-1 font-medium sm:h-8">
+                              <Navigation className="w-4 h-4 mr-1.5" /> Directions
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </Card>
               </motion.div>
@@ -265,22 +229,14 @@ export default function Medicines() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pharmacies.map((pharmacy, index) => (
+            {medicalStores.map((store, index) => (
               <Card key={index} hoverEffect className="p-5 flex flex-col group cursor-pointer border-transparent hover:border-primary-200">
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-100 transition-colors">
                   <Pill size={24} />
                 </div>
-                <h3 className="font-bold text-slate-900 mb-1">
-                  {typeof pharmacy === 'string' ? pharmacy : pharmacy.name}
-                </h3>
-                {typeof pharmacy !== 'string' && (
-                  <p className="text-xs text-slate-500 mb-1">
-                    {pharmacy.address}, {pharmacy.city}
-                  </p>
-                )}
-                <p className="text-sm text-slate-500 mb-4">
-                  {(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now
-                </p>
+                <h3 className="font-bold text-slate-900 mb-1">{store.name}</h3>
+                <p className="text-sm text-slate-500 mb-1">{store.address}</p>
+                <p className="text-xs text-slate-400 mb-4">{store.city}</p>
                 <div className="mt-auto flex items-center text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
                   Get Directions <ChevronRight className="w-4 h-4 ml-1" />
                 </div>
