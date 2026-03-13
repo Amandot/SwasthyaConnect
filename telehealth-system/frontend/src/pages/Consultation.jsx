@@ -26,7 +26,7 @@ export default function Consultation({ user }) {
     try {
       setAppointment({
         id: '1',
-        doctorName: 'Dr. Rajesh Sharma',
+        doctorName: 'Dr. Smriti Pandey ',
         patientName: user?.displayName || user?.email?.split('@')[0] || 'Patient',
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

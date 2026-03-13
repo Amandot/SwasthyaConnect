@@ -28,7 +28,7 @@ export default function HealthRecords({ user }) {
         {
           id: '1',
           date: '2026-03-10',
-          doctorName: 'Dr. Rajesh Sharma',
+          doctorName: 'Dr. Smriti Pandey',
           diagnosis: 'Viral Fever',
           prescription: [
             { medicine: 'Paracetamol 500mg', dosage: '1 tablet', frequency: 'Twice daily', duration: '5 days' },
@@ -61,7 +61,7 @@ export default function HealthRecords({ user }) {
       setSelectedRecord({
         id: '1',
         date: '2026-03-10',
-        doctorName: 'Dr. Rajesh Sharma',
+        doctorName: 'Dr. Smriti Pandey',
         diagnosis: 'Viral Fever',
         prescription: [
           { medicine: 'Paracetamol 500mg', dosage: '1 tablet', frequency: 'Twice daily', duration: '5 days' },
