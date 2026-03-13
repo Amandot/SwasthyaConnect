@@ -4,12 +4,22 @@ A full-stack web application for remote healthcare access designed for rural com
 
 ## Features
 
+- **🎥 Video Consultations** - Face-to-face doctor consultations using Jitsi Meet with HD video/audio
 - **Patient Authentication** - Secure login using Firebase Authentication
-- **Video/Audio Consultations** - Real-time doctor consultations using Jitsi Meet
 - **Digital Health Records** - View previous consultations, prescriptions, and medical history
 - **Medicine Availability** - Search medicines and check stock at nearby pharmacies
 - **AI Symptom Checker** - OpenAI-powered preliminary health assessment
 - **Progressive Web App** - Works offline with cached health records
+
+### Video Call Features
+- ✅ HD video and audio quality
+- ✅ Screen sharing for better diagnosis
+- ✅ Text chat during consultations
+- ✅ Device selection (camera/mic/speaker)
+- ✅ End-to-end encryption
+- ✅ Mobile responsive
+- ✅ Recording capability (with consent)
+- ✅ Multi-participant support
 
 ## Tech Stack
 
@@ -87,6 +97,33 @@ telehealth-system/
 - npm or pnpm
 - Firebase account
 - OpenAI API key (optional, for AI features)
+- Modern browser with camera/microphone access
+
+### Quick Start - Video Call Testing
+
+Want to test the video call feature immediately? Follow these steps:
+
+1. **Install and start the frontend:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+2. **Open the test page:**
+   Navigate to: `http://localhost:5173/test-video`
+
+3. **Create a room and test:**
+   - Enter your name and create a room
+   - Copy the room ID
+   - Open an incognito window and join with the same room ID
+   - Grant camera/microphone permissions
+   - Start your video consultation!
+
+📖 **For detailed video call documentation, see:**
+- `VIDEO_CALL_GUIDE.md` - Complete implementation guide
+- `QUICK_START_VIDEO.md` - Quick setup instructions
+- `VIDEO_CALL_SUMMARY.md` - Feature summary
 
 ### Firebase Setup
 

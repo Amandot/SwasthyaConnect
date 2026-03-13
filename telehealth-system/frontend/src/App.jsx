@@ -19,6 +19,12 @@ import Medicines from './pages/Medicines.jsx';
 import Consultation from './pages/Consultation.jsx';
 import SymptomChecker from './pages/SymptomChecker.jsx';
 import Emergency from './pages/Emergency.jsx';
+import BasicJitsiTest from './pages/BasicJitsiTest.jsx';
+import SimpleVideoTest from './pages/SimpleVideoTest.jsx';
+import VideoCallTest from './pages/VideoCallTest.jsx';
+import VideoCallDebug from './pages/VideoCallDebug.jsx';
+import UltraSimpleTest from './pages/UltraSimpleTest.jsx';
+import WorkingTest from './pages/WorkingTest.jsx';
 
 // Components
 import Navbar from './components/Navbar.jsx';
@@ -138,6 +144,14 @@ function App() {
                 path="/consultation/:roomId" 
                 element={user ? <Consultation user={user} /> : <Navigate to="/login" />} 
               />
+
+              {/* Video Test Routes - Public for testing */}
+              <Route path="/test/working" element={<WorkingTest />} />
+              <Route path="/test/ultra-simple" element={<UltraSimpleTest />} />
+              <Route path="/test/basic-jitsi" element={<BasicJitsiTest />} />
+              <Route path="/test/simple-video" element={<SimpleVideoTest />} />
+              <Route path="/test/video-call" element={<VideoCallTest />} />
+              <Route path="/test/video-debug" element={<VideoCallDebug />} />
               
               {/* Fallback */}
               <Route 

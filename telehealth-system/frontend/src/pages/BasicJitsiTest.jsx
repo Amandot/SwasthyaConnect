@@ -17,7 +17,7 @@ export default function BasicJitsiTest() {
       // Initialize Jitsi
       try {
         const api = new window.JitsiMeetExternalAPI('meet.jit.si', {
-          roomName: 'BasicTestRoom123',
+          roomName: 'TestRoom' + Math.random().toString(36).substr(2, 9),
           width: '100%',
           height: 600,
           parentNode: containerRef.current,
@@ -55,10 +55,10 @@ export default function BasicJitsiTest() {
   return (
     <div style={{ padding: '20px', backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
       <h1 style={{ color: 'white', marginBottom: '20px' }}>
-        Basic Jitsi Test - Room: BasicTestRoom123
+        Basic Jitsi Test - Random Room
       </h1>
       <p style={{ color: '#aaa', marginBottom: '20px' }}>
-        Open this same page in another window/browser to test connection.
+        Each page load creates a unique room. Open this same page in another window/browser to test connection.
         Check browser console (F12) for logs.
       </p>
       <div 

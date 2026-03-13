@@ -23,7 +23,8 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
 
   useEffect(() => {
     const safeRoomId = sanitizeRoomName(roomId);
-    const roomName = `TelehealthRoom_${safeRoomId}`;
+    // Use simple room name without prefix to avoid lobby restrictions
+    const roomName = safeRoomId;
 
     const loadJitsi = async () => {
       try {
@@ -210,7 +211,7 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10 pointer-events-none">
           <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4" />
           <p className="text-white text-lg font-semibold">Connecting to consultation room...</p>
-          <p className="text-slate-400 text-sm mt-2">Room: TelehealthRoom_{sanitizeRoomName(roomId)}</p>
+          <p className="text-slate-400 text-sm mt-2">Room: {sanitizeRoomName(roomId)}</p>
           <p className="text-slate-500 text-xs mt-4">Allow camera & microphone when prompted, then click Join</p>
         </div>
       )}
