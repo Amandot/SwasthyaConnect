@@ -67,7 +67,7 @@ export default function DoctorDashboard({ user }) {
         </div>
         <div className="flex gap-3">
           <Button variant="secondary" icon={Upload}>Upload Records</Button>
-          <Button icon={Video} onClick={() => navigate('/consultation/new-room')}>Start Open Room</Button>
+          <Button icon={Video} onClick={() => navigate('/consultation/room-1')}>Start Open Room</Button>
         </div>
       </motion.section>
 

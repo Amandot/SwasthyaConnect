@@ -17,6 +17,10 @@ export default function Consultation({ user }) {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [callEnded, setCallEnded] = useState(false);
+  
+  // Determine user role from localStorage or user object
+  const userRole = localStorage.getItem('userRole') || user?.role || 'patient';
+  const displayName = user?.displayName || user?.email?.split('@')[0] || (userRole === 'doctor' ? 'Doctor' : 'Patient');
 
   useEffect(() => {
     fetchAppointment();
@@ -26,8 +30,8 @@ export default function Consultation({ user }) {
     try {
       setAppointment({
         id: '1',
-        doctorName: 'Dr. Rajesh Sharma',
-        patientName: user?.displayName || user?.email?.split('@')[0] || 'Patient',
+        doctorName: userRole === 'doctor' ? displayName : 'Dr. Rajesh Sharma',
+        patientName: userRole === 'patient' ? displayName : 'Patient',
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'video',
@@ -36,7 +40,7 @@ export default function Consultation({ user }) {
     } catch (error) {
       console.error('Error fetching appointment:', error);
     } finally {
-      setTimeout(() => setLoading(false), 1000); // Simulated delay for loading state
+      setTimeout(() => setLoading(false), 1000);
     }
   };
 
@@ -170,29 +174,21 @@ export default function Consultation({ user }) {
       </motion.header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col lg:flex-row relative z-10 p-2 sm:p-4 gap-4 max-w-[1600px] w-full mx-auto h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)]">
+      <main className="flex-1 flex flex-col lg:flex-row relative z-10 p-2 sm:p-4 gap-4 max-w-[1600px] w-full mx-auto min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
         
         {/* Video Call Area */}
         <motion.div 
-          className="flex-1 h-full w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-black relative border border-slate-800/60 shadow-2xl"
+          className="flex-1 w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-black relative border border-slate-800/60 shadow-2xl aspect-video lg:aspect-auto lg:h-full"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center z-10 pointer-events-none">
-             <Video className="w-16 h-16 text-slate-600 opacity-20 mb-4" />
-             <p className="text-slate-400 font-medium">Video Stream Integration Pending</p>
-             <p className="text-slate-500 text-sm mt-2 max-w-sm text-center">Jitsi API integration required to render actual video feed within this container.</p>
-          </div>
-
-          {/* Placeholder for actual VideoCall Component */}
-          <div className="absolute inset-0 z-0 opacity-50">
-             <VideoCall
-               roomId={roomId}
-               userName={appointment?.patientName}
-               onLeave={handleLeaveCall}
-             />
-          </div>
+          <VideoCall
+            roomId={roomId}
+            userName={displayName}
+            userRole={userRole}
+            onLeave={handleLeaveCall}
+          />
 
           <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
              <ShieldAlert size={14} className="text-emerald-400" />

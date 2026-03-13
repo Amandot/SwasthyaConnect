@@ -32,6 +32,7 @@ export default function Dashboard({ user }) {
       setHealthTip(tipsRes.data.dailyTip);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Use room-1, room-2, room-3 to match DoctorDashboard appointments so both join same Jitsi room
       setAppointments([
         {
           id: '1',
@@ -40,7 +41,7 @@ export default function Dashboard({ user }) {
           time: '10:00 AM',
           type: 'video',
           status: 'scheduled',
-          roomId: 'demo-room-123'
+          roomId: 'room-1'
         }
       ]);
       setHealthTip('Drink at least 8 glasses of water daily to maintain optimal hydration.');
