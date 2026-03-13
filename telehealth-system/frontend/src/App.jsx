@@ -112,7 +112,11 @@ function App() {
               />
               <Route 
                 path="/health-records" 
-                element={user && userRole === 'patient' ? <HealthRecords user={user} /> : <Navigate to="/login" />} 
+                element={
+                  user && (userRole === 'patient' || userRole === 'doctor')
+                    ? <HealthRecords user={user} userRole={userRole} />
+                    : <Navigate to="/login" />
+                } 
               />
               <Route 
                 path="/medicines" 

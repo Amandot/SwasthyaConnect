@@ -179,21 +179,14 @@ export default function Consultation({ user }) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center z-10 pointer-events-none">
-             <Video className="w-16 h-16 text-slate-600 opacity-20 mb-4" />
-             <p className="text-slate-400 font-medium">Video Stream Integration Pending</p>
-             <p className="text-slate-500 text-sm mt-2 max-w-sm text-center">Jitsi API integration required to render actual video feed within this container.</p>
+          {/* Actual VideoCall Component (fills entire area) */}
+          <div className="absolute inset-0">
+            <VideoCall
+              roomId={roomId}
+              userName={appointment?.patientName}
+              onLeave={handleLeaveCall}
+            />
           </div>
-
-          {/* Placeholder for actual VideoCall Component */}
-          <div className="absolute inset-0 z-0 opacity-50">
-             <VideoCall
-               roomId={roomId}
-               userName={appointment?.patientName}
-               onLeave={handleLeaveCall}
-             />
-          </div>
-
           <div className="absolute top-4 left-4 z-20 bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
              <ShieldAlert size={14} className="text-emerald-400" />
              <span className="text-xs font-medium text-white tracking-wider">END-TO-END ENCRYPTED</span>

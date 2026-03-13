@@ -7,23 +7,108 @@ import {
   Video, Clock, CheckCircle, Upload
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { appointmentAPI, userAPI } from '../services/api';
 
 export default function DoctorDashboard({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate fetching doctor's appointments
-    setTimeout(() => {
-      setAppointments([
-        { id: 1, patient: "Anil Kumar", time: "09:00 AM", type: "Video", status: "Upcoming", roomId: "room-1" },
-        { id: 2, patient: "Sunita Sharma", time: "10:30 AM", type: "Audio", status: "Completed", roomId: "room-2" },
-        { id: 3, patient: "Ramesh Singh", time: "02:00 PM", type: "Video", status: "Upcoming", roomId: "room-3" }
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchAppointments();
   }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      if (!user?.uid) {
+        setAppointments([]);
+        return;
+      }
+
+      const res = await appointmentAPI.getAppointments({
+        doctorId: user.uid,
+      });
+
+      // Map API model -> UI model
+      const mapped = res.data
+        .sort((a, b) => (a.date || '').localeCompare(b.date || '')) // simple sort by date
+        .map((apt) => ({
+          id: apt.id,
+          patientName: apt.patientName || apt.patientId || 'Patient',
+          date: apt.date,
+          time: apt.time,
+          type: apt.type === 'audio' ? 'Audio' : 'Video',
+          status: apt.status || 'scheduled',
+          roomId: apt.roomId,
+        }));
+
+      setAppointments(mapped);
+    } catch (err) {
+      console.error('Error fetching doctor appointments:', err);
+      setError('Could not load your schedule. Showing demo data.');
+      // Fallback demo
+      setAppointments([
+        {
+          id: 'demo-1',
+          patientName: 'Anil Kumar',
+          date: '2026-03-15',
+          time: '09:00 AM',
+          type: 'Video',
+          status: 'scheduled',
+          roomId: 'demo-room-1',
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const anyInProgress = appointments.some((apt) => apt.status === 'in-progress');
+
+  const handleStartConsultation = async (apt) => {
+    try {
+      // Only one active consultation at a time
+      if (anyInProgress && apt.status !== 'in-progress') {
+        alert('You already have an in-progress consultation. Please finish it before starting a new one.');
+        return;
+      }
+
+      if (apt.id && apt.id.toString().startsWith('demo-') === false) {
+        await appointmentAPI.updateAppointment(apt.id, { status: 'in-progress' });
+      }
+
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === apt.id ? { ...a, status: 'in-progress' } : a
+        )
+      );
+
+      navigate(`/consultation/${apt.roomId}`);
+    } catch (err) {
+      console.error('Error starting consultation:', err);
+      alert('Could not start consultation. Please try again.');
+    }
+  };
+
+  const handleMarkCompleted = async (apt) => {
+    try {
+      if (apt.id && apt.id.toString().startsWith('demo-') === false) {
+        await appointmentAPI.updateAppointment(apt.id, { status: 'completed' });
+      }
+
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === apt.id ? { ...a, status: 'completed' } : a
+        )
+      );
+    } catch (err) {
+      console.error('Error completing consultation:', err);
+      alert('Could not update appointment. Please try again.');
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -35,10 +120,35 @@ export default function DoctorDashboard({ user }) {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  const todaysConsultations = appointments.filter(
+    (a) => a.status === 'scheduled' || a.status === 'in-progress'
+  ).length;
+  const completedConsultations = appointments.filter(
+    (a) => a.status === 'completed'
+  ).length;
+
   const stats = [
-    { label: "Today's Consultations", value: "8", icon: CalendarIcon, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Pending Prescriptions", value: "3", icon: FilePlus, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Total Patients Sent", value: "142", icon: Users, color: "text-emerald-600", bg: "bg-emerald-50" }
+    {
+      label: "Today's Consultations",
+      value: todaysConsultations.toString(),
+      icon: CalendarIcon,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Completed Today',
+      value: completedConsultations.toString(),
+      icon: CheckCircle,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+    {
+      label: 'Total Patients',
+      value: '—',
+      icon: Users,
+      color: 'text-slate-600',
+      bg: 'bg-slate-50',
+    },
   ];
 
   if (loading) {
@@ -95,35 +205,68 @@ export default function DoctorDashboard({ user }) {
         <Card className="overflow-hidden p-0 border-slate-200">
           <div className="divide-y divide-slate-100">
             {appointments.map((apt) => (
-              <div key={apt.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 transition-colors">
+              <div
+                key={apt.id}
+                className="p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 transition-colors"
+              >
                 <div className="flex items-start gap-4 mb-4 sm:mb-0">
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200">
-                    {apt.patient.charAt(0)}
+                    {String(apt.patientName || 'P').charAt(0)}
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900">{apt.patient}</h4>
+                    <h4 className="text-lg font-bold text-slate-900">
+                      {apt.patientName}
+                    </h4>
                     <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                      <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> {apt.time}</span>
-                      <span className="flex items-center"><Video className="w-4 h-4 mr-1" /> {apt.type}</span>
+                      <span className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1" /> {apt.time}
+                      </span>
+                      <span className="flex items-center">
+                        <Video className="w-4 h-4 mr-1" /> {apt.type}
+                      </span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    apt.status === 'Upcoming' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                  }`}>
-                    {apt.status}
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      apt.status === 'scheduled'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                        : apt.status === 'in-progress'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                    }`}
+                  >
+                    {apt.status === 'scheduled'
+                      ? 'Scheduled'
+                      : apt.status === 'in-progress'
+                      ? 'In Progress'
+                      : 'Completed'}
                   </span>
                   
-                  {apt.status === 'Upcoming' ? (
-                    <Button size="sm" onClick={() => navigate(`/consultation/${apt.roomId}`)}>
-                      Join Call
-                    </Button>
-                  ) : (
+                  {apt.status === 'completed' ? (
                     <Button size="sm" variant="secondary" icon={CheckCircle}>
                       View Notes
                     </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartConsultation(apt)}
+                      >
+                        {apt.status === 'in-progress' ? 'Resume Call' : 'Start Call'}
+                      </Button>
+                      {apt.status === 'in-progress' && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleMarkCompleted(apt)}
+                        >
+                          Mark Completed
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
