@@ -278,10 +278,12 @@ export default function SymptomCheckerComponent() {
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-100">
                   <Button
-                    onClick={() => window.location.href = '/book-appointment'}
+                    asChild
                     className="flex-1 h-14 text-lg bg-slate-900 hover:bg-slate-800"
                   >
+                    <Link to="/book-appointment">
                     Consult a Doctor Now <ArrowRight className="w-5 h-5 ml-2" />
+                    </Link>
                   </Button>
                   <Button
                     onClick={handleClear}

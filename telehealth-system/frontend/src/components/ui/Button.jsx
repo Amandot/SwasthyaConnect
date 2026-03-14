@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Slot } from '@radix-ui/react-slot';
 import { cn } from '../../lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -9,6 +10,8 @@ export function Button({
   isLoading = false, 
   children, 
   icon: Icon,
+  loadingText,
+  asChild = false,
   ...props 
 }) {
   const variants = {
@@ -24,6 +27,8 @@ export function Button({
     lg: "px-8 py-4 text-lg font-semibold"
   };
 
+  const Component = asChild ? Slot : 'button';
+
   return (
     <motion.button
       whileHover={{ y: -2 }}
@@ -38,11 +43,18 @@ export function Button({
       {...props}
     >
       {isLoading ? (
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <>
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          {loadingText || children}
+        </>
       ) : Icon ? (
-        <Icon className={cn("h-5 w-5", children ? "mr-2" : "")} />
-      ) : null}
-      {children}
+        <>
+          <Icon className={cn("h-5 w-5", children ? "mr-2" : "")} />
+          {children}
+        </>
+      ) : (
+        children
+      )}
     </motion.button>
   );
 }

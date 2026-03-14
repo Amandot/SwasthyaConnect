@@ -17,17 +17,13 @@ import BookAppointment from './pages/BookAppointment.jsx';
 import HealthRecords from './pages/HealthRecords.jsx';
 import Medicines from './pages/Medicines.jsx';
 import Consultation from './pages/Consultation.jsx';
+import VideoCallTest from './pages/VideoCallTest.jsx';
 import SymptomChecker from './pages/SymptomChecker.jsx';
 import Emergency from './pages/Emergency.jsx';
-import BasicJitsiTest from './pages/BasicJitsiTest.jsx';
-import SimpleVideoTest from './pages/SimpleVideoTest.jsx';
-import VideoCallTest from './pages/VideoCallTest.jsx';
-import VideoCallDebug from './pages/VideoCallDebug.jsx';
-import UltraSimpleTest from './pages/UltraSimpleTest.jsx';
-import WorkingTest from './pages/WorkingTest.jsx';
 
 // Components
 import Navbar from './components/Navbar.jsx';
+import ProtectedRoute from './components/routing/ProtectedRoute.jsx';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -110,48 +106,75 @@ function App() {
               {/* Protected Patient Routes */}
               <Route 
                 path="/dashboard" 
-                element={user && userRole === 'patient' ? <Dashboard user={user} /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <Dashboard user={user} />
+                  </ProtectedRoute>
+                } 
               />
               <Route 
                 path="/book-appointment" 
-                element={user && userRole === 'patient' ? <BookAppointment user={user} /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <BookAppointment user={user} />
+                  </ProtectedRoute>
+                } 
               />
               <Route 
                 path="/health-records" 
-                element={user && userRole === 'patient' ? <HealthRecords user={user} /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <HealthRecords user={user} />
+                  </ProtectedRoute>
+                } 
               />
               <Route 
                 path="/medicines" 
-                element={user && userRole === 'patient' ? <Medicines /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <Medicines />
+                  </ProtectedRoute>
+                } 
               />
               <Route 
                 path="/symptom-checker" 
-                element={user && userRole === 'patient' ? <SymptomChecker /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <SymptomChecker />
+                  </ProtectedRoute>
+                } 
               />
               <Route 
                 path="/emergency" 
-                element={user && userRole === 'patient' ? <Emergency /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient']}>
+                    <Emergency />
+                  </ProtectedRoute>
+                } 
               />
 
               {/* Protected Doctor Routes */}
               <Route 
                 path="/doctor-dashboard" 
-                element={user && userRole === 'doctor' ? <DoctorDashboard user={user} /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['doctor']}>
+                    <DoctorDashboard user={user} />
+                  </ProtectedRoute>
+                } 
               />
 
               {/* Shared Protected Routes */}
               <Route 
                 path="/consultation/:roomId" 
-                element={user ? <Consultation user={user} /> : <Navigate to="/login" />} 
+                element={
+                  <ProtectedRoute user={user} userRole={userRole} allowedRoles={['patient', 'doctor']}>
+                    <Consultation user={user} />
+                  </ProtectedRoute>
+                } 
               />
 
-              {/* Video Test Routes - Public for testing */}
-              <Route path="/test/working" element={<WorkingTest />} />
-              <Route path="/test/ultra-simple" element={<UltraSimpleTest />} />
-              <Route path="/test/basic-jitsi" element={<BasicJitsiTest />} />
-              <Route path="/test/simple-video" element={<SimpleVideoTest />} />
+              {/* Video Test Route (for manual video-call testing) */}
               <Route path="/test/video-call" element={<VideoCallTest />} />
-              <Route path="/test/video-debug" element={<VideoCallDebug />} />
               
               {/* Fallback */}
               <Route 

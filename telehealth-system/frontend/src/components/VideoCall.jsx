@@ -28,7 +28,7 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
 
     const loadJitsi = async () => {
       try {
-        const domain = 'meet.jit.si';
+        const domain = import.meta.env.VITE_JITSI_DOMAIN || 'meet.jit.si';
         const options = {
           roomName,
           width: '100%',
