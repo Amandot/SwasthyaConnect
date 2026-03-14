@@ -12,7 +12,7 @@ import {
 import { cn } from '../lib/utils';
 
 const DEMO_DOCTORS = [
-  { id: '1', name: 'Dr. Rajesh Sharma', specialty: 'General Physician', available: true, experience: '15+ yrs', rating: 4.8 },
+  { id: '1', name: 'Dr. Smriti Pandey ', specialty: 'General Physician', available: true, experience: '15+ yrs', rating: 4.8 },
   { id: '2', name: 'Dr. Priya Patel', specialty: 'Pediatrician', available: true, experience: '12 yrs', rating: 4.9 },
   { id: '3', name: 'Dr. Amit Kumar', specialty: 'Cardiologist', available: false, experience: '20+ yrs', rating: 4.7 },
   { id: '4', name: 'Dr. Sunita Gupta', specialty: 'Dermatologist', available: true, experience: '8 yrs', rating: 4.6 }

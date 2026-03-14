@@ -41,36 +41,102 @@ export default function EmergencyPage() {
       setNearbyHospitals([
         {
           id: 1,
-          name: 'District General Hospital',
-          distance: '2.5 km',
-          eta: '8 mins',
-          beds: 12,
+          name: 'Lt Gen Shivdev Singh Civil Hospital',
+          distance: '0 km (Nabha)',
+          eta: '3 mins',
+          beds: 20,
           emergency: true,
-          phone: '102',
-          address: 'Main Road, Civil Lines',
-          rating: 4.5
+          phone: '01765-000001',
+          address: 'Guru Nanak Pura, Nabha, 147201',
+          rating: 4.7
         },
         {
           id: 2,
-          name: 'Rural Health Center',
-          distance: '1.2 km',
-          eta: '4 mins',
-          beds: 4,
+          name: 'Sawhney Hospital & Maternity Home',
+          distance: '~1-2 km (Nabha)',
+          eta: '5 mins',
+          beds: 12,
           emergency: true,
-          phone: '104',
-          address: 'Block B, Market Road',
-          rating: 4.2
+          phone: '01765-000002',
+          address: 'Munshian Street, Nabha, 147201',
+          rating: 4.5
         },
         {
           id: 3,
-          name: 'Community Hospital',
-          distance: '3.8 km',
-          eta: '12 mins',
+          name: 'Goyal Healthcare Hospital',
+          distance: '~1 km (Nabha)',
+          eta: '4 mins',
+          beds: 10,
+          emergency: true,
+          phone: '01765-000003',
+          address: 'College Road, Nabha, 147201',
+          rating: 4.4
+        },
+        {
+          id: 4,
+          name: 'Tara Hospital',
+          distance: '~2 km (Nabha)',
+          eta: '7 mins',
           beds: 8,
           emergency: true,
-          phone: '108',
-          address: 'Station Road',
+          phone: '01765-000004',
+          address: 'Circular Road, Nabha, 147201',
+          rating: 4.3
+        },
+        {
+          id: 5,
+          name: 'Aneja Children & Maternity Hospital',
+          distance: '~3 km (Nabha)',
+          eta: '9 mins',
+          beds: 6,
+          emergency: true,
+          phone: '01765-000005',
+          address: 'Radha Swamy Marg, Nabha, 147201',
+          rating: 4.4
+        },
+        {
+          id: 6,
+          name: 'Sukhmani Orthopaedic & General Hospital',
+          distance: '~2 km (Nabha)',
+          eta: '7 mins',
+          beds: 10,
+          emergency: true,
+          phone: '01765-000006',
+          address: 'Circular Road, Nabha, 147201',
+          rating: 4.2
+        },
+        {
+          id: 7,
+          name: 'Bansal Hospital & Laparoscopic Centre',
+          distance: '~2 km (Nabha)',
+          eta: '7 mins',
+          beds: 8,
+          emergency: true,
+          phone: '01765-000007',
+          address: 'Circular Road, Nabha, 147201',
+          rating: 4.1
+        },
+        {
+          id: 8,
+          name: 'Community Health Centre (CHC)',
+          distance: '~16–18 km (Bhawanigarh)',
+          eta: '25 mins',
+          beds: 15,
+          emergency: true,
+          phone: '01779-000001',
+          address: 'NH 7, Bhawanigarh, 148026',
           rating: 4.0
+        },
+        {
+          id: 9,
+          name: 'Gupta Hospital & Heart Centre',
+          distance: '~16 km (Bhawanigarh)',
+          eta: '23 mins',
+          beds: 12,
+          emergency: true,
+          phone: '01779-000002',
+          address: 'NH 64, Bhawanigarh, 148026',
+          rating: 4.3
         }
       ]);
 
@@ -112,6 +178,18 @@ export default function EmergencyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGetDirections = (hospitalName, address, e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    const fullAddress = address ? `${hospitalName}, ${address}` : hospitalName;
+    const searchQuery = encodeURIComponent(fullAddress);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+
+    window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   const quickActions = [
@@ -313,7 +391,12 @@ export default function EmergencyPage() {
                           Call
                         </Button>
                       </a>
-                      <Button variant="primary" size="sm" className="w-full md:w-auto gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full md:w-auto gap-2"
+                        onClick={(e) => handleGetDirections(hospital.name, hospital.address, e)}
+                      >
                         <Navigation size={16} />
                         Directions
                       </Button>

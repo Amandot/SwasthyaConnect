@@ -30,7 +30,7 @@ export default function Consultation({ user }) {
     try {
       setAppointment({
         id: '1',
-        doctorName: userRole === 'doctor' ? displayName : 'Dr. Rajesh Sharma',
+        doctorName: userRole === 'doctor' ? displayName : 'Dr. Smriti Pandey',
         patientName: userRole === 'patient' ? displayName : 'Patient',
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

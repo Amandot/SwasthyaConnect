@@ -132,7 +132,7 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary-600 font-bold border border-blue-100 shadow-sm">Dr</div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">Dr. Rajesh Sharma</p>
+                    <p className="font-semibold text-slate-900 text-sm">Dr. Smriti Pandey </p>
                     <p className="text-xs text-emerald-600 font-medium">Ongoing session</p>
                   </div>
                 </div>
