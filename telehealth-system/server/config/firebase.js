@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 
 let appInitialized = false;
+export let isDemoMode = false;
 
 function getFirebaseAdminApp() {
   if (!appInitialized) {
@@ -34,6 +35,7 @@ function getFirebaseAdminApp() {
       admin.initializeApp({
         projectId: 'demo-telehealth',
       });
+      isDemoMode = true;
     }
 
     appInitialized = true;

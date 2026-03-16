@@ -1,14 +1,6 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
-
-import logger from './config/logger.js';
-import { createCorsMiddleware } from './middleware/cors.js';
-import { apiRateLimiter } from './middleware/rateLimit.js';
-import { authenticate } from './middleware/auth.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 // Import routes
 import usersRouter from './routes/users.js';
@@ -23,24 +15,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security & core middleware
-app.use(helmet());
-app.use(createCorsMiddleware());
+// Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
-app.use(compression());
 
-// HTTP request logging
-app.use(
-  morgan('combined', {
-    stream: {
-      write: (message) => logger.info(message.trim()),
-    },
-  }),
-);
-
-// Rate limiting and authentication for API routes
-app.use('/api', apiRateLimiter);
-app.use('/api', authenticate);
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // API Routes
 app.use('/api/users', usersRouter);
@@ -75,17 +61,30 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 and error handlers
-app.use(notFoundHandler);
-app.use(errorHandler);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message 
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(
-    `Rural TeleHealth API server running on http://localhost:${PORT} in ${
-      process.env.NODE_ENV || 'development'
-    } mode`,
-  );
+  console.log(`
+╔════════════════════════════════════════════════════════╗
+║     Rural TeleHealth Access System - API Server        ║
+╠════════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:${PORT}              ║
+║  Environment: ${process.env.NODE_ENV || 'development'}                            ║
+╚════════════════════════════════════════════════════════╝
+  `);
 });
 
 export default app;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Jitsi room names must be alphanumeric, hyphen, or underscore only
 function sanitizeRoomName(id) {
@@ -14,6 +14,7 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
   const [error, setError] = useState(null);
   const jitsiApiRef = useRef(null);
   const containerRef = useRef(null);
+  const initializedRef = useRef(false);
 
   // Hide our overlay after a few seconds so Jitsi iframe (permission/prejoin) is visible
   useEffect(() => {
@@ -147,17 +148,23 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
 
     // Ensure container is mounted (ref is set after commit)
     const start = () => {
+      if (initializedRef.current) return; // prevent double init
       if (containerRef.current) {
+        initializedRef.current = true;
         loadJitsi();
       } else {
         requestAnimationFrame(() => {
-          if (containerRef.current) loadJitsi();
+          if (containerRef.current && !initializedRef.current) {
+            initializedRef.current = true;
+            loadJitsi();
+          }
         });
       }
     };
     start();
 
     return () => {
+      initializedRef.current = false;
       if (jitsiApiRef.current) {
         jitsiApiRef.current.dispose();
         jitsiApiRef.current = null;
@@ -203,9 +210,9 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
   }
 
   return (
-    <div className="relative h-full w-full min-h-[400px]">
+    <div className="relative w-full h-full min-h-[300px]" style={{ position: 'absolute', inset: 0 }}>
       {/* Jitsi Container - iframe is appended here by Jitsi */}
-      <div ref={containerRef} className="w-full h-full min-h-[400px] bg-slate-900" />
+      <div ref={containerRef} className="w-full h-full bg-slate-900" style={{ position: 'absolute', inset: 0 }} />
       {/* Overlay: hide after 4s or when joined so Jitsi prejoin/permission UI is visible */}
       {showConnectingOverlay && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10 pointer-events-none">

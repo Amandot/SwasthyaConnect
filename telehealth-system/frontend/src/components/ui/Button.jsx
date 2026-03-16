@@ -28,9 +28,10 @@ export function Button({
   };
 
   const Component = asChild ? Slot : 'button';
+  const MotionComponent = motion(Component);
 
   return (
-    <motion.button
+    <MotionComponent
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       className={cn(
@@ -55,6 +56,6 @@ export function Button({
       ) : (
         children
       )}
-    </motion.button>
+    </MotionComponent>
   );
 }

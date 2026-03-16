@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../firebase/firebaseConfig';
 
 // Create axios instance with base URL
 const api = axios.create({
@@ -11,10 +12,26 @@ const api = axios.create({
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      // If a real Firebase user is signed in, always get a fresh (auto-refreshed) token
+      if (auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        localStorage.setItem('authToken', token);
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // Fall back to stored token (demo mode / JWT)
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch {
+      // If token refresh fails, fall back to stored token
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },

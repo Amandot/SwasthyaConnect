@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import VideoCall from '../components/VideoCall';
 import { appointmentAPI } from '../services/api';
@@ -44,9 +44,9 @@ export default function Consultation({ user }) {
     }
   };
 
-  const handleLeaveCall = () => {
+  const handleLeaveCall = useCallback(() => {
     setCallEnded(true);
-  };
+  }, []);
 
   const handleReturnToDashboard = () => {
     navigate('/dashboard');
@@ -127,7 +127,7 @@ export default function Consultation({ user }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden" style={{ height: '100vh' }}>
       {/* Dynamic Background for Video Room */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800/40 via-slate-950 to-slate-950 -z-10" />
 
@@ -174,11 +174,11 @@ export default function Consultation({ user }) {
       </motion.header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col lg:flex-row relative z-10 p-2 sm:p-4 gap-4 max-w-[1600px] w-full mx-auto min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
+      <main className="flex-1 flex flex-col lg:flex-row relative z-10 p-2 sm:p-4 gap-4 max-w-[1600px] w-full mx-auto overflow-hidden">
         
         {/* Video Call Area */}
         <motion.div 
-          className="flex-1 w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-black relative border border-slate-800/60 shadow-2xl aspect-video lg:aspect-auto lg:h-full"
+          className="flex-1 w-full rounded-2xl sm:rounded-[2rem] overflow-hidden bg-black relative border border-slate-800/60 shadow-2xl min-h-[300px]"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
