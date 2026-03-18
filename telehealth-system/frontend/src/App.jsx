@@ -30,6 +30,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null); // 'patient' or 'doctor'
 
+  // Called by login pages after successful auth so React state stays in sync
+  const handleRoleChange = (role) => {
+    localStorage.setItem('userRole', role);
+    setUserRole(role);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       // Primary: Firebase-authenticated user
@@ -96,11 +102,11 @@ function App() {
               />
               <Route 
                 path="/login/patient" 
-                element={user ? <Navigate to="/dashboard" /> : <PatientLogin />} 
+                element={user && userRole === 'patient' ? <Navigate to="/dashboard" /> : <PatientLogin onLogin={() => handleRoleChange('patient')} />} 
               />
               <Route 
                 path="/login/doctor" 
-                element={user ? <Navigate to="/doctor-dashboard" /> : <DoctorLogin />} 
+                element={user && userRole === 'doctor' ? <Navigate to="/doctor-dashboard" /> : <DoctorLogin onLogin={() => handleRoleChange('doctor')} />} 
               />
 
               {/* Protected Patient Routes */}

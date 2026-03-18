@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Stethoscope, ArrowRight, Lock, Mail } from 'lucide-react';
 
-export default function DoctorLogin() {
+export default function DoctorLogin({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,6 +35,7 @@ export default function DoctorLogin() {
         localStorage.setItem('demoUser', JSON.stringify(demoUser));
         localStorage.setItem('userRole', 'doctor');
         localStorage.setItem('authToken', 'demo-doctor-token');
+        onLogin?.();
         navigate('/doctor-dashboard');
         return;
       }
@@ -43,6 +44,7 @@ export default function DoctorLogin() {
       const token = await cred.user.getIdToken();
       localStorage.setItem('authToken', token);
       localStorage.setItem('userRole', 'doctor');
+      onLogin?.();
       navigate('/doctor-dashboard');
     } catch (err) {
       console.error('Login error:', err);

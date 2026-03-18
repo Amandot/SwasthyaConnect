@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { LogIn, ArrowRight, Lock, Mail } from 'lucide-react';
 
-export default function PatientLogin() {
+export default function PatientLogin({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,6 +35,7 @@ export default function PatientLogin() {
         localStorage.setItem('demoUser', JSON.stringify(demoUser));
         localStorage.setItem('userRole', 'patient');
         localStorage.setItem('authToken', 'demo-patient-token');
+        onLogin?.();
         navigate('/dashboard');
         return;
       }
@@ -43,6 +44,7 @@ export default function PatientLogin() {
       const token = await cred.user.getIdToken();
       localStorage.setItem('authToken', token);
       localStorage.setItem('userRole', 'patient');
+      onLogin?.();
       navigate('/dashboard');
     } catch (err) {
       console.error('Patient login error:', err);

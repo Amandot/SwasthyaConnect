@@ -8,7 +8,7 @@ export default function ProtectedRoute({ user, userRole, allowedRoles = [], chil
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={userRole === 'doctor' ? '/doctor-dashboard' : '/dashboard'} replace />;
   }
 
   return children;
