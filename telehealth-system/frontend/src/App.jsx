@@ -41,8 +41,13 @@ function App() {
       // Primary: Firebase-authenticated user
       if (currentUser) {
         setUser(currentUser);
-        const role = localStorage.getItem('userRole') || 'patient';
-        setUserRole(role);
+        // Read role from localStorage - this is set by login/signup pages before navigation
+        // We do NOT default to 'patient' here to avoid overwriting a doctor role
+        const role = localStorage.getItem('userRole');
+        if (role) {
+          setUserRole(role);
+        }
+        // If no role stored yet, leave userRole as-is (login page will set it via onLogin)
       } else if (isDemoFirebase) {
         // Demo fallback: use locally stored fake user if present
         const storedDemo = localStorage.getItem('demoUser');
@@ -58,6 +63,8 @@ function App() {
       } else {
         setUser(null);
         setUserRole(null);
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('authToken');
       }
       setLoading(false);
     });
@@ -94,11 +101,11 @@ function App() {
               />
               <Route 
                 path="/signup/patient"
-                element={user ? <Navigate to="/dashboard" /> : <PatientSignup />}
+                element={user ? <Navigate to="/dashboard" /> : <PatientSignup onLogin={() => handleRoleChange('patient')} />}
               />
               <Route 
                 path="/signup/doctor"
-                element={user ? <Navigate to="/doctor-dashboard" /> : <DoctorSignup />}
+                element={user ? <Navigate to="/doctor-dashboard" /> : <DoctorSignup onLogin={() => handleRoleChange('doctor')} />}
               />
               <Route 
                 path="/login/patient" 
