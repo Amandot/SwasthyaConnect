@@ -1,0 +1,143 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, isDemoFirebase } from '../firebase/firebaseConfig';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { LogIn, ArrowRight, Lock, Mail } from 'lucide-react';
+
+export default function PatientLogin({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Demo mode: allow README demo credentials without real Firebase
+      if (isDemoFirebase && email === 'demo.patient@telehealth.com' && password === 'demo123') {
+        const demoUser = {
+          uid: 'demo-patient',
+          email,
+          displayName: 'Demo Patient',
+          role: 'patient',
+        };
+        localStorage.setItem('demoUser', JSON.stringify(demoUser));
+        localStorage.setItem('userRole', 'patient');
+        localStorage.setItem('authToken', 'demo-patient-token');
+        onLogin?.();
+        navigate('/dashboard');
+        return;
+      }
+
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const token = await cred.user.getIdToken();
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userRole', 'patient');
+      onLogin?.();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Patient login error:', err);
+      setError('Invalid email or password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-80px)] bg-brand-background dark:bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-100/50 dark:bg-primary-950/30 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/3" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/30 dark:bg-emerald-950/20 rounded-full blur-[80px] -z-10 -translate-x-1/3 translate-y-1/3" />
+
+      <Card className="max-w-md w-full p-8 relative z-10 shadow-premium border-slate-100/50 dark:border-slate-700/50 dark:bg-slate-900">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <LogIn size={32} />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Patient Login</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Sign in to access your health records and consult doctors
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm flex items-center">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="label">
+                Email Address
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
+                  <Mail className="h-5 w-5" />
+                </span>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field pl-12"
+                  placeholder="patient@example.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="label">
+                Password
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field pl-12"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading || !email || !password}
+              className="w-full mt-6"
+              isLoading={loading}
+            >
+              {!loading && (
+                <>
+                  Sign in securely <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+        </div>
+      </Card>
+    </div>
+  );
+}
