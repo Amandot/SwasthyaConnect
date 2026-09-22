@@ -7,6 +7,7 @@ import {
   Video, Clock, CheckCircle, Upload
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { appointmentAPI } from '../services/api';
 
 export default function DoctorDashboard({ user }) {
   const [appointments, setAppointments] = useState([]);
@@ -14,15 +15,18 @@ export default function DoctorDashboard({ user }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate fetching doctor's appointments
-    setTimeout(() => {
-      setAppointments([
-        { id: 1, patient: "Anil Kumar", time: "09:00 AM", type: "Video", status: "Upcoming", roomId: "room-1" },
-        { id: 2, patient: "Sunita Sharma", time: "10:30 AM", type: "Audio", status: "Completed", roomId: "room-2" },
-        { id: 3, patient: "Ramesh Singh", time: "02:00 PM", type: "Video", status: "Upcoming", roomId: "room-3" }
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchAppointments = async () => {
+      try {
+        const response = await appointmentAPI.getAppointments();
+        setAppointments(response.data || []);
+      } catch (error) {
+        console.error('Failed to fetch appointments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
   }, []);
 
   const containerVariants = {
@@ -94,30 +98,37 @@ export default function DoctorDashboard({ user }) {
         
         <Card className="overflow-hidden p-0 border-slate-200 dark:border-slate-700">
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {appointments.map((apt) => (
+            {appointments.length === 0 && (
+              <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                No appointments scheduled for today.
+              </div>
+            )}
+            {appointments.map((apt) => {
+              const patientName = apt.patient?.name || 'Unknown Patient';
+              return (
               <div key={apt.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-start gap-4 mb-4 sm:mb-0">
                   <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">
-                    {apt.patient.charAt(0)}
+                    {patientName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">{apt.patient}</h4>
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">{patientName}</h4>
                     <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mt-1">
-                      <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> {apt.time}</span>
-                      <span className="flex items-center"><Video className="w-4 h-4 mr-1" /> {apt.type}</span>
+                      <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> {apt.time || 'N/A'}</span>
+                      <span className="flex items-center"><Video className="w-4 h-4 mr-1" /> {apt.type || 'video'}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    apt.status === 'Upcoming' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800'
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
+                    apt.status?.toLowerCase() === 'scheduled' || apt.status === 'Upcoming' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800'
                   }`}>
-                    {apt.status}
+                    {apt.status || 'Scheduled'}
                   </span>
                   
-                  {apt.status === 'Upcoming' ? (
-                    <Button size="sm" onClick={() => navigate(`/consultation/${apt.roomId}`)}>
+                  {apt.status?.toLowerCase() === 'scheduled' || apt.status === 'Upcoming' ? (
+                    <Button size="sm" onClick={() => navigate(`/consultation/${apt.room_id || apt.roomId}`)}>
                       Join Call
                     </Button>
                   ) : (
@@ -127,7 +138,7 @@ export default function DoctorDashboard({ user }) {
                   )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </Card>
       </motion.section>

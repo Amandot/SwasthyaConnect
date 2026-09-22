@@ -1,38 +1,26 @@
-import { db } from '../config/firebase.js';
+import { supabase } from '../config/supabase.js';
 
 // Get all medicines
 export const getMedicines = async (req, res) => {
   try {
     const { name, pharmacy, available } = req.query;
-    let query = db.collection('medicines');
     
-    const medicinesSnapshot = await query.get();
-    let medicines = [];
-    medicinesSnapshot.forEach(doc => {
-      medicines.push({ id: doc.id, ...doc.data() });
-    });
+    let query = supabase.from('medicines').select('*');
     
-    // Filter by name if provided
     if (name) {
-      medicines = medicines.filter(m => 
-        m.name.toLowerCase().includes(name.toLowerCase())
-      );
+      query = query.ilike('name', `%${name}%`);
     }
-    
-    // Filter by pharmacy if provided
     if (pharmacy) {
-      medicines = medicines.filter(m => 
-        m.pharmacy.toLowerCase().includes(pharmacy.toLowerCase())
-      );
+      query = query.ilike('pharmacy', `%${pharmacy}%`);
     }
-    
-    // Filter by availability if provided
     if (available !== undefined) {
-      const isAvailable = available === 'true';
-      medicines = medicines.filter(m => m.available === isAvailable);
+      query = query.eq('available', available === 'true');
     }
     
-    res.json(medicines);
+    const { data, error } = await query;
+    if (error) throw error;
+    
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -42,13 +30,18 @@ export const getMedicines = async (req, res) => {
 export const getMedicineById = async (req, res) => {
   try {
     const { id } = req.params;
-    const medicineDoc = await db.collection('medicines').doc(id).get();
     
-    if (!medicineDoc.exists) {
+    const { data, error } = await supabase
+      .from('medicines')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error || !data) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
     
-    res.json({ id: medicineDoc.id, ...medicineDoc.data() });
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -63,18 +56,15 @@ export const searchMedicines = async (req, res) => {
       return res.status(400).json({ error: 'Search query is required' });
     }
     
-    const medicinesSnapshot = await db.collection('medicines').get();
-    const medicines = [];
-    
-    medicinesSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.name.toLowerCase().includes(query.toLowerCase())) {
-        medicines.push({ id: doc.id, ...data });
-      }
-    });
+    const { data, error } = await supabase
+      .from('medicines')
+      .select('*')
+      .ilike('name', `%${query}%`);
+      
+    if (error) throw error;
     
     // Group by medicine name
-    const grouped = medicines.reduce((acc, med) => {
+    const grouped = data.reduce((acc, med) => {
       if (!acc[med.name]) {
         acc[med.name] = [];
       }
@@ -92,9 +82,14 @@ export const searchMedicines = async (req, res) => {
   }
 };
 
-// Add medicine (for pharmacy owners)
+// Add medicine
 export const addMedicine = async (req, res) => {
   try {
+    // Basic authorization check (e.g. only admins or specific roles can add meds)
+    if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+      return res.status(403).json({ error: 'Forbidden: Cannot add medicines' });
+    }
+
     const { name, pharmacy, available, price, quantity } = req.body;
     
     const newMedicine = {
@@ -102,12 +97,17 @@ export const addMedicine = async (req, res) => {
       pharmacy,
       available: available !== false,
       price: price || null,
-      quantity: quantity || 0,
-      createdAt: new Date().toISOString()
+      quantity: quantity || 0
     };
     
-    const docRef = await db.collection('medicines').add(newMedicine);
-    res.status(201).json({ id: docRef.id, ...newMedicine });
+    const { data, error } = await supabase
+      .from('medicines')
+      .insert(newMedicine)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -116,15 +116,25 @@ export const addMedicine = async (req, res) => {
 // Update medicine availability
 export const updateMedicine = async (req, res) => {
   try {
+    if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+      return res.status(403).json({ error: 'Forbidden: Cannot update medicines' });
+    }
+
     const { id } = req.params;
     const updates = req.body;
     
-    await db.collection('medicines').doc(id).update({
-      ...updates,
-      updatedAt: new Date().toISOString()
-    });
+    delete updates.id;
+    updates.updated_at = new Date().toISOString();
     
-    res.json({ message: 'Medicine updated successfully' });
+    const { data, error } = await supabase
+      .from('medicines')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -133,13 +143,16 @@ export const updateMedicine = async (req, res) => {
 // Get pharmacies
 export const getPharmacies = async (req, res) => {
   try {
-    const medicinesSnapshot = await db.collection('medicines').get();
-    const pharmacies = new Set();
+    const { data, error } = await supabase
+      .from('medicines')
+      .select('pharmacy');
+      
+    if (error) throw error;
     
-    medicinesSnapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.pharmacy) {
-        pharmacies.add(data.pharmacy);
+    const pharmacies = new Set();
+    data.forEach(med => {
+      if (med.pharmacy) {
+        pharmacies.add(med.pharmacy);
       }
     });
     

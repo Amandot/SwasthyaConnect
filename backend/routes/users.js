@@ -9,6 +9,14 @@ import {
 
 const router = express.Router();
 
+// GET /api/users/me - Get current authenticated user
+router.get('/me', (req, res) => {
+  if (!req.user || req.user.isNew) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+  res.json(req.user);
+});
+
 // GET /api/users - Get all users
 router.get('/', getUsers);
 

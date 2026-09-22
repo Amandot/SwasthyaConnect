@@ -61,6 +61,25 @@ export default function PatientSignup({ onLogin }) {
 
       const token = await cred.user.getIdToken();
       localStorage.setItem('authToken', token);
+      
+      // Register with our backend
+      try {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            role: 'patient'
+          })
+        });
+      } catch (backendErr) {
+        console.error('Failed to create backend profile:', backendErr);
+      }
+
       localStorage.setItem('userRole', 'patient');
       onLogin?.();
       navigate('/dashboard');

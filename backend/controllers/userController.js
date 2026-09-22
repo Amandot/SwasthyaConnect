@@ -1,14 +1,11 @@
-import { db } from '../config/firebase.js';
+import { supabase } from '../config/supabase.js';
 
 // Get all users
 export const getUsers = async (req, res) => {
   try {
-    const usersSnapshot = await db.collection('users').get();
-    const users = [];
-    usersSnapshot.forEach(doc => {
-      users.push({ id: doc.id, ...doc.data() });
-    });
-    res.json(users);
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -18,34 +15,64 @@ export const getUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userDoc = await db.collection('users').doc(id).get();
-    
-    if (!userDoc.exists) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error || !data) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ id: userDoc.id, ...userDoc.data() });
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Create user
+// Create user (called after Firebase signup)
 export const createUser = async (req, res) => {
   try {
+    // Requires that the user is authenticated (firebase_uid is in req.user)
+    if (!req.user || !req.user.firebase_uid) {
+      return res.status(401).json({ error: 'Unauthorized: Firebase token required' });
+    }
+
     const { name, role, age, email, phone } = req.body;
     
+    // Ensure we use the authenticated user's firebase uid and email
+    const firebase_uid = req.user.firebase_uid;
+    const userEmail = email || req.user.email || null;
+    
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('firebase_uid', firebase_uid)
+      .single();
+
+    if (existingUser) {
+      return res.status(200).json(existingUser);
+    }
+
     const newUser = {
+      firebase_uid,
       name,
       role: role || 'patient',
       age: age || null,
-      email: email || null,
-      phone: phone || null,
-      createdAt: new Date().toISOString()
+      email: userEmail,
+      phone: phone || null
     };
     
-    const docRef = await db.collection('users').add(newUser);
-    res.status(201).json({ id: docRef.id, ...newUser });
+    const { data, error } = await supabase
+      .from('users')
+      .insert(newUser)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -55,14 +82,29 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Authorization: User can only update their own profile, unless admin
+    if (req.user.id !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Cannot update other user profiles' });
+    }
+
     const updates = req.body;
+    // Prevent changing firebase_uid and role
+    delete updates.firebase_uid;
+    delete updates.role;
+    delete updates.id;
     
-    await db.collection('users').doc(id).update({
-      ...updates,
-      updatedAt: new Date().toISOString()
-    });
+    updates.updated_at = new Date().toISOString();
     
-    res.json({ message: 'User updated successfully' });
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -71,16 +113,35 @@ export const updateUser = async (req, res) => {
 // Get doctors
 export const getDoctors = async (req, res) => {
   try {
-    const doctorsSnapshot = await db.collection('users')
-      .where('role', '==', 'doctor')
-      .get();
-    
-    const doctors = [];
-    doctorsSnapshot.forEach(doc => {
-      doctors.push({ id: doc.id, ...doc.data() });
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'doctor');
+      
+    if (error) throw error;
+
+    // Augment with UI mock data since schema doesn't have these yet
+    const enhancedData = data.map((doc, index) => {
+      const specialties = ['General Physician', 'Pediatrician', 'Cardiologist', 'Dermatologist'];
+      const experiences = ['15+ yrs', '12 yrs', '20+ yrs', '8 yrs'];
+      
+      // Determine specialty based on name if possible, or fallback
+      let specialty = specialties[index % specialties.length];
+      if (doc.name.includes('Smriti')) specialty = 'General Physician';
+      if (doc.name.includes('Priya')) specialty = 'Pediatrician';
+      if (doc.name.includes('Amit')) specialty = 'Cardiologist';
+      if (doc.name.includes('Sunita')) specialty = 'Dermatologist';
+
+      return {
+        ...doc,
+        specialty: specialty,
+        experience: experiences[index % experiences.length],
+        rating: 4.5 + (index % 5) * 0.1,
+        available: true // Essential for the frontend to allow booking
+      };
     });
-    
-    res.json(doctors);
+
+    res.json(enhancedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -38,17 +38,33 @@ function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       // Primary: Firebase-authenticated user
       if (currentUser) {
         setUser(currentUser);
-        // Read role from localStorage - this is set by login/signup pages before navigation
-        // We do NOT default to 'patient' here to avoid overwriting a doctor role
-        const role = localStorage.getItem('userRole');
-        if (role) {
-          setUserRole(role);
+        // Fetch real role/profile from backend
+        try {
+          const token = await currentUser.getIdToken();
+          localStorage.setItem('authToken', token);
+          
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const profile = await response.json();
+            setUserRole(profile.role);
+            localStorage.setItem('userRole', profile.role);
+          } else {
+            // Might be a new user who hasn't completed signup
+            const role = localStorage.getItem('userRole');
+            if (role) setUserRole(role);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user profile", error);
+          const role = localStorage.getItem('userRole');
+          if (role) setUserRole(role);
         }
-        // If no role stored yet, leave userRole as-is (login page will set it via onLogin)
       } else if (isDemoFirebase) {
         // Demo fallback: use locally stored fake user if present
         const storedDemo = localStorage.getItem('demoUser');
