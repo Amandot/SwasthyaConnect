@@ -1,25 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { userAPI, appointmentAPI } from '../services/api';
 import { motion } from 'framer-motion';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  CalendarCheck2,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock,
+  FileText,
+  PhoneCall,
+  Star,
+  Stethoscope,
+  Video
+} from 'lucide-react';
+import { userAPI, appointmentAPI } from '../services/api';
+import { InlineNotice, PageHeader, PageShell, Skeleton } from '../components/ui/PagePrimitives';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { 
-  CalendarDays, UserRound, Clock, Video, 
-  PhoneCall, CheckCircle2, AlertCircle, FileText,
-  Stethoscope, ShieldCheck
-} from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const DEMO_DOCTORS = [
-  { id: '1', name: 'Dr. Smriti Pandey ', specialty: 'General Physician', available: true, experience: '15+ yrs', rating: 4.8 },
-  { id: '2', name: 'Dr. Priya Patel', specialty: 'Pediatrician', available: true, experience: '12 yrs', rating: 4.9 },
-  { id: '3', name: 'Dr. Amit Kumar', specialty: 'Cardiologist', available: false, experience: '20+ yrs', rating: 4.7 },
-  { id: '4', name: 'Dr. Sunita Gupta', specialty: 'Dermatologist', available: true, experience: '8 yrs', rating: 4.6 }
+const SAMPLE_DOCTORS = [
+  { id: 'sample-1', name: 'Sample general physician', specialty: 'General Physician', available: true },
+  { id: 'sample-2', name: 'Sample pediatrician', specialty: 'Pediatrician', available: true },
+  { id: 'sample-3', name: 'Sample cardiologist', specialty: 'Cardiologist', available: false },
+  { id: 'sample-4', name: 'Sample dermatologist', specialty: 'Dermatologist', available: true }
+];
+
+const STEPS = [
+  { label: 'Doctor', description: 'Choose provider' },
+  { label: 'Date', description: 'Pick a day' },
+  { label: 'Time', description: 'Select a slot' },
+  { label: 'Confirm', description: 'Review details' }
+];
+
+const consultationOptions = [
+  {
+    value: 'video',
+    title: 'Video call',
+    description: 'High-quality face-to-face consultation',
+    icon: Video
+  },
+  {
+    value: 'audio',
+    title: 'Voice call',
+    description: 'Low-bandwidth consultation',
+    icon: PhoneCall
+  }
 ];
 
 export default function BookAppointment({ user }) {
-  const [doctors, setDoctors] = useState(DEMO_DOCTORS);
+  const [doctors, setDoctors] = useState(SAMPLE_DOCTORS);
+  const [usingSampleDoctors, setUsingSampleDoctors] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -29,7 +63,15 @@ export default function BookAppointment({ user }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [validationField, setValidationField] = useState('');
+  const [validationError, setValidationError] = useState('');
   const navigate = useNavigate();
+  const doctorGroupRef = useRef(null);
+  const dateInputRef = useRef(null);
+  const timeGroupRef = useRef(null);
+  const stepPanelRef = useRef(null);
+  const hasMountedRef = useRef(false);
 
   const timeSlots = [
     '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
@@ -41,15 +83,29 @@ export default function BookAppointment({ user }) {
     fetchDoctors();
   }, []);
 
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    stepPanelRef.current?.focus({ preventScroll: true });
+  }, [currentStep]);
+
   const fetchDoctors = async () => {
     try {
       setLoading(true);
       const response = await userAPI.getDoctors();
       if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
         setDoctors(response.data);
+        setUsingSampleDoctors(false);
+      } else {
+        setDoctors([]);
+        setUsingSampleDoctors(false);
       }
     } catch (error) {
       console.error('Error fetching doctors:', error);
+      setDoctors(SAMPLE_DOCTORS);
+      setUsingSampleDoctors(true);
     } finally {
       setLoading(false);
     }
@@ -76,9 +132,7 @@ export default function BookAppointment({ user }) {
       setTimeout(() => navigate('/dashboard'), 2500);
     } catch (err) {
       console.error('Error booking appointment:', err);
-      // Demo mode success
-      setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 2500);
+      setError('The appointment could not be confirmed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -89,271 +143,718 @@ export default function BookAppointment({ user }) {
     return today.toISOString().split('T')[0];
   };
 
+  const formatDate = (value) => {
+    if (!value) return 'Not selected';
+    const parsedDate = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) return value;
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(parsedDate);
+  };
+
+  const getDoctorInitials = (name = '') => name
+    .replace(/^Dr\.\s*/i, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+  const clearValidation = (field) => {
+    if (validationField === field) {
+      setValidationField('');
+      setValidationError('');
+    }
+  };
+
+  const showValidationError = (field, message) => {
+    setValidationField(field);
+    setValidationError(message);
+  };
+
+  const handleNextStep = () => {
+    if (currentStep === 1 && !selectedDoctor) {
+      showValidationError('doctor', 'Choose an available doctor to continue.');
+      doctorGroupRef.current?.focus();
+      return;
+    }
+
+    if (currentStep === 2) {
+      const minDate = getMinDate();
+      if (!date || date < minDate) {
+        showValidationError('date', date ? 'Choose today or a future date to continue.' : 'Choose a date to continue.');
+        dateInputRef.current?.focus();
+        return;
+      }
+    }
+
+    if (currentStep === 3 && !time) {
+      showValidationError('time', 'Choose a time slot to continue.');
+      timeGroupRef.current?.focus();
+      return;
+    }
+
+    setValidationField('');
+    setValidationError('');
+    setCurrentStep((step) => Math.min(step + 1, 4));
+  };
+
+  const handleBackStep = () => {
+    if (currentStep === 1) {
+      navigate('/dashboard');
+      return;
+    }
+
+    setValidationField('');
+    setValidationError('');
+    setCurrentStep((step) => Math.max(step - 1, 1));
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 14 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
   };
 
   if (success) {
     return (
-      <main className="min-h-[80vh] flex items-center justify-center p-4">
+      <PageShell className="flex min-h-[80vh] items-center justify-center p-4 sm:p-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full"
+          className="w-full max-w-lg"
         >
-          <Card className="p-8 text-center bg-gradient-to-b from-emerald-50 to-white dark:from-emerald-950/40 dark:to-slate-900 border-emerald-100 dark:border-emerald-900/30 shadow-premium">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
-              className="w-24 h-24 bg-brand-success text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200 dark:shadow-emerald-950/50"
-            >
-              <CheckCircle2 size={48} />
-            </motion.div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Booking Confirmed!</h1>
-            <p className="text-slate-600 dark:text-slate-300 mb-6 text-lg">
-              Your consultation with <strong className="text-slate-900 dark:text-white">{selectedDoctor?.name}</strong> has been scheduled.
-            </p>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 mb-6 text-left shadow-sm">
-               <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-50 dark:border-slate-700/50">
-                  <CalendarDays className="text-primary-500 dark:text-primary-400 w-5 h-5" />
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{date}</span>
-               </div>
-               <div className="flex items-center gap-3">
-                  <Clock className="text-primary-500 dark:text-primary-400 w-5 h-5" />
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{time}</span>
-               </div>
+          <Card className="overflow-hidden border-emerald-200/80 p-0 text-center shadow-float dark:border-emerald-800/70">
+            <div className="bg-gradient-to-b from-emerald-50 to-white px-8 pb-7 pt-9 dark:from-emerald-950/40 dark:to-slate-900">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
+                className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-brand-success text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-950/50"
+              >
+                <CheckCircle2 size={46} aria-hidden="true" />
+              </motion.div>
+              <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">Appointment confirmed</p>
+              <h1 className="text-3xl font-extrabold tracking-[-0.035em] text-ink dark:text-white">Booking Confirmed!</h1>
+              <p className="mx-auto mt-3 max-w-md text-base leading-7 text-slate-600 dark:text-slate-300">
+                Your consultation with <strong className="font-bold text-ink dark:text-white">{selectedDoctor?.name}</strong> has been scheduled.
+              </p>
             </div>
-            <div className="flex items-center justify-center gap-2 text-primary-600 dark:text-primary-400 text-sm font-medium animate-pulse">
-               <div className="w-4 h-4 border-2 border-primary-600 dark:border-primary-400 border-t-transparent rounded-full animate-spin" />
-               Redirecting to your dashboard...
+            <div className="px-6 pb-7 sm:px-8">
+              <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left sm:grid-cols-2 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                    <CalendarDays className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Date</p>
+                    <p className="mt-0.5 text-sm font-bold text-ink dark:text-white">{formatDate(date)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                    <Clock className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Time</p>
+                    <p className="mt-0.5 text-sm font-bold text-ink dark:text-white">{time}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent dark:border-primary-400" aria-hidden="true" />
+                Redirecting to your dashboard...
+              </div>
             </div>
           </Card>
         </motion.div>
-      </main>
+      </PageShell>
     );
   }
 
+  const currentStepInfo = STEPS[currentStep - 1];
+  const progressWidth = `${(currentStep / STEPS.length) * 100}%`;
+
   return (
-    <motion.main
-      className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">Book Consultation</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Secure a secure tele-health visit with our certified specialists.</p>
-      </div>
+    <PageShell className="py-8 sm:py-10 lg:py-12">
+      <motion.div
+        className="mx-auto max-w-7xl"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <PageHeader
+          eyebrow="Appointment booking"
+          title="Book a consultation"
+          description="Choose a provider, select a convenient time, and review your appointment before confirming."
+          icon={CalendarCheck2}
+        />
 
-      {error && (
-        <motion.div variants={itemVariants} className="mb-6 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-400 rounded-2xl flex items-center gap-3">
-          <AlertCircle className="shrink-0" />
-          <p className="font-medium">{error}</p>
-        </motion.div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Step 1: Doctor Selection */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center gap-3 mb-4">
-             <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-primary-600 text-white flex items-center justify-center font-bold text-sm">1</div>
-             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Select Provider</h2>
+        {error && (
+          <div role="alert" className="mb-6">
+            <InlineNotice tone="danger" icon={AlertCircle} title="Unable to book appointment">
+              {error}
+            </InlineNotice>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <Card key={i} className="animate-pulse p-4 h-24" />
-              ))
-            ) : (
-              doctors.map((doctor) => (
-                <button
-                  key={doctor.id}
-                  type="button"
-                  onClick={() => doctor.available && setSelectedDoctor(doctor)}
-                  disabled={!doctor.available}
-                  className={cn(
-                    "p-5 border-2 rounded-2xl text-left transition-all duration-300 relative overflow-hidden group outline-none",
-                    selectedDoctor?.id === doctor.id
-                      ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/30 shadow-soft ring-4 ring-primary-600/10 dark:ring-primary-400/20"
-                      : doctor.available
-                      ? "border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900"
-                      : "border-slate-100 dark:border-slate-800/40 bg-slate-50 dark:bg-slate-900/40 opacity-60 cursor-not-allowed"
-                  )}
+        <form onSubmit={handleSubmit}>
+          {selectedDoctor && (
+            <Card className="mb-5 p-4 lg:hidden" aria-live="polite">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-50 text-sm font-extrabold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+                  {getDoctorInitials(selectedDoctor.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Booking with</p>
+                  <p className="truncate text-sm font-bold text-ink dark:text-white">{selectedDoctor.name}</p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">{selectedDoctor.specialty}</p>
+                </div>
+                {(date || time) && (
+                  <div className="ml-auto hidden text-right min-[380px]:block">
+                    {date && <p className="text-xs font-bold text-ink dark:text-white">{formatDate(date)}</p>}
+                    {time && <p className="text-xs text-primary-700 dark:text-primary-300">{time}</p>}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
+            <div className="min-w-0">
+              <Card className="sticky top-3 z-20 overflow-hidden p-0 shadow-float backdrop-blur-xl">
+                <div
+                  className="h-1.5 bg-slate-100 dark:bg-slate-800"
+                  role="progressbar"
+                  aria-label={`Step ${currentStep} of 4: ${currentStepInfo.label}`}
+                  aria-valuemin="1"
+                  aria-valuemax="4"
+                  aria-valuenow={currentStep}
                 >
-                  {selectedDoctor?.id === doctor.id && (
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-200/40 dark:bg-primary-600/20 rounded-full blur-[20px] -translate-y-1/2 translate-x-1/2" />
+                  <motion.div
+                    className="h-full rounded-r-full bg-gradient-to-r from-primary-600 to-primary-400"
+                    animate={{ width: progressWidth }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  />
+                </div>
+                <ol className="grid grid-cols-4 border-b border-slate-100 px-1 dark:border-slate-800 sm:px-3" aria-label="Booking progress">
+                  {STEPS.map((step, index) => {
+                    const stepNumber = index + 1;
+                    const isCurrent = currentStep === stepNumber;
+                    const isComplete = currentStep > stepNumber;
+
+                    return (
+                      <li
+                        key={step.label}
+                        className={cn(
+                          'flex min-w-0 flex-col items-center gap-1.5 border-l border-slate-100 px-1 py-3 text-center first:border-l-0 dark:border-slate-800 sm:flex-row sm:gap-3 sm:px-3 sm:py-4 sm:text-left',
+                          isCurrent && 'bg-primary-50/70 dark:bg-primary-900/30'
+                        )}
+                        aria-current={isCurrent ? 'step' : undefined}
+                        aria-label={`${step.label}${isCurrent ? ', current step' : ''}`}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-extrabold transition-colors',
+                            isCurrent && 'border-primary-600 bg-primary-600 text-white shadow-sm shadow-primary-600/20',
+                            isComplete && 'border-primary-600 bg-primary-600 text-white',
+                            !isCurrent && !isComplete && 'border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
+                          )}
+                          aria-hidden="true"
+                        >
+                          {isComplete ? <Check className="h-4 w-4" /> : stepNumber}
+                        </span>
+                        <span className="min-w-0">
+                          <span className={cn('block truncate text-[11px] font-extrabold sm:text-sm', isCurrent ? 'text-primary-800 dark:text-primary-200' : 'text-ink dark:text-slate-200')}>
+                            {step.label}
+                          </span>
+                          <span className="mt-0.5 hidden truncate text-[11px] font-medium text-slate-400 dark:text-slate-500 sm:block">
+                            {step.description}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <div className="flex items-center justify-between gap-3 bg-white/80 p-3 dark:bg-slate-900/80 sm:px-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleBackStep}
+                    icon={ArrowLeft}
+                    className="min-h-11 px-3 sm:px-5"
+                  >
+                    {currentStep === 1 ? 'Cancel' : 'Back'}
+                    <span className="sr-only"> to {currentStep === 1 ? 'cancel booking' : STEPS[currentStep - 2].label}</span>
+                  </Button>
+                  {currentStep < 4 ? (
+                    <Button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="min-h-11 px-4 sm:px-6"
+                    >
+                      Continue
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      <span className="sr-only"> to {STEPS[currentStep].label}</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      disabled={!selectedDoctor || !date || !time || submitting}
+                      isLoading={submitting}
+                      icon={CheckCircle2}
+                      loadingText="Confirming..."
+                      className="min-h-11 px-4 sm:px-6"
+                    >
+                      Confirm appointment
+                    </Button>
                   )}
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex flex-shrink-0 items-center justify-center shadow-sm",
-                      selectedDoctor?.id === doctor.id ? "bg-primary-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    )}>
-                      <UserRound size={24} />
+                </div>
+              </Card>
+
+              <motion.section
+                key={currentStep}
+                ref={stepPanelRef}
+                tabIndex={-1}
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                className="mt-6 outline-none sm:mt-7"
+                aria-labelledby="booking-step-title"
+              >
+                <div className="mb-5 sm:mb-6">
+                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">Step {currentStep} of 4</p>
+                  <h2 id="booking-step-title" className="text-2xl font-extrabold tracking-[-0.03em] text-ink dark:text-white sm:text-3xl">
+                    {currentStep === 1 && 'Choose your doctor'}
+                    {currentStep === 2 && 'Select an appointment date'}
+                    {currentStep === 3 && 'Choose a time slot'}
+                    {currentStep === 4 && 'Review and confirm'}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-[15px]">
+                    {currentStep === 1 && 'Select an available provider to begin your booking.'}
+                    {currentStep === 2 && 'Choose today or any future date for your consultation.'}
+                    {currentStep === 3 && 'Select the time that works best for your appointment.'}
+                    {currentStep === 4 && 'Check every detail, add any notes, then confirm your appointment.'}
+                  </p>
+                </div>
+
+                 {currentStep === 1 && (
+                   <div>
+                     {usingSampleDoctors && (
+                       <InlineNotice icon={AlertCircle} title="Sample provider directory" tone="warning" className="mb-5">
+                         Sample providers are shown for preview only while the service directory is unavailable. They cannot be booked.
+                       </InlineNotice>
+                     )}
+                     <div
+                       ref={doctorGroupRef}
+                      role="group"
+                      aria-labelledby="booking-step-title"
+                      aria-describedby="doctor-selection-help doctor-selection-error"
+                      aria-invalid={validationField === 'doctor' || undefined}
+                      tabIndex={-1}
+                      className="grid grid-cols-1 gap-4 rounded-[22px] outline-none focus-visible:ring-4 focus-visible:ring-primary-500/15 sm:grid-cols-2"
+                    >
+                      {loading ? (
+                        [1, 2, 3, 4].map((item) => (
+                          <Card key={item} className="p-0" aria-hidden="true">
+                            <div className="space-y-5 p-5">
+                              <div className="flex items-center gap-4">
+                                <Skeleton className="h-14 w-14 rounded-2xl" />
+                                <div className="flex-1 space-y-2">
+                                  <Skeleton className="h-4 w-3/4" />
+                                  <Skeleton className="h-3 w-1/2" />
+                                </div>
+                              </div>
+                              <Skeleton className="h-3 w-full" />
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                         doctors.map((doctor) => {
+                           const isSelected = selectedDoctor?.id === doctor.id;
+                           const canSelect = doctor.available && !usingSampleDoctors;
+
+                           return (
+                            <Card
+                              key={doctor.id}
+                              className={cn(
+                                'h-full overflow-hidden p-0 transition-[border-color,box-shadow,opacity] duration-200',
+                                isSelected && 'border-primary-500 shadow-soft ring-2 ring-primary-500/15',
+                                !doctor.available && 'opacity-60'
+                              )}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                   if (canSelect) {
+                                    setSelectedDoctor(doctor);
+                                    clearValidation('doctor');
+                                  }
+                                }}
+                                 disabled={!canSelect}
+                                aria-pressed={isSelected}
+                                className={cn(
+                                  'group relative flex h-full min-h-[190px] w-full flex-col p-5 text-left outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-primary-500/25',
+                                   canSelect ? 'cursor-pointer' : 'cursor-not-allowed'
+                                )}
+                              >
+                                <div className="flex w-full items-start justify-between gap-3">
+                                  <span
+                                    className={cn(
+                                      'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-base font-extrabold transition-colors',
+                                      isSelected
+                                        ? 'bg-primary-600 text-white shadow-md shadow-primary-600/20'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                    )}
+                                    aria-hidden="true"
+                                  >
+                                    {getDoctorInitials(doctor.name)}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-extrabold',
+                                     canSelect
+                                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-300'
+                                        : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                                    )}
+                                  >
+                                     <span className={cn('h-1.5 w-1.5 rounded-full', canSelect ? 'bg-emerald-500' : 'bg-slate-400')} aria-hidden="true" />
+                                     {usingSampleDoctors ? 'Sample' : doctor.available ? 'Available' : 'Unavailable'}
+                                  </span>
+                                </div>
+                                <div className="mt-5 min-w-0 flex-1">
+                                  <div className="flex items-start gap-2">
+                                    <h3 className="min-w-0 flex-1 truncate text-base font-extrabold text-ink dark:text-white">{doctor.name}</h3>
+                                    {isSelected && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary-600 dark:text-primary-300" aria-hidden="true" />}
+                                  </div>
+                                  <p className="mt-1 text-sm font-semibold text-primary-700 dark:text-primary-300">{doctor.specialty}</p>
+                                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    {doctor.experience && <span>{doctor.experience} experience</span>}
+                                    {doctor.rating && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
+                                        {doctor.rating}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            </Card>
+                          );
+                        })
+                      )}
+                     </div>
+                     {!loading && doctors.length === 0 && (
+                       <InlineNotice icon={AlertCircle} title="No providers available" tone="warning" className="mt-4">
+                         No provider directory is available right now. Check again later or contact your local care service.
+                       </InlineNotice>
+                     )}
+                     <p id="doctor-selection-help" className="sr-only">Use the available doctor cards to choose a provider.</p>
+                    {validationField === 'doctor' && (
+                      <p id="doctor-selection-error" role="alert" className="mt-3 flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                        <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {validationError}
+                      </p>
+                    )}
+                    <span className="sr-only" role="status">{loading ? 'Loading doctors' : `${doctors.length} doctors loaded`}</span>
+                  </div>
+                )}
+
+                {currentStep === 2 && (
+                  <Card className="overflow-hidden p-0">
+                    <div className="flex items-center gap-4 border-b border-primary-100 bg-gradient-to-r from-primary-50 to-cyan-50/70 px-5 py-5 dark:border-primary-900/60 dark:from-primary-900/40 dark:to-cyan-950/20 sm:px-7 sm:py-6">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                        <CalendarDays className="h-6 w-6" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">Appointment date</p>
+                        <p className="mt-1 text-lg font-extrabold text-ink dark:text-white">{date ? formatDate(date) : 'Choose a date'}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                         <h3 className="font-bold text-slate-900 dark:text-white truncate pr-2">{doctor.name}</h3>
-                         {doctor.available && selectedDoctor?.id === doctor.id && (
-                           <CheckCircle2 className="text-primary-600 dark:text-primary-400 shrink-0" size={20} />
-                         )}
+                    <div className="p-5 sm:p-7">
+                      <label htmlFor="appointment-date" className="label text-ink dark:text-slate-200">Select date</label>
+                      <div className="relative">
+                        <CalendarDays className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                        <input
+                          ref={dateInputRef}
+                          id="appointment-date"
+                          type="date"
+                          value={date}
+                          onChange={(event) => {
+                            setDate(event.target.value);
+                            clearValidation('date');
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              handleNextStep();
+                            }
+                          }}
+                          min={getMinDate()}
+                          required
+                          aria-invalid={validationField === 'date' || undefined}
+                          aria-describedby={validationField === 'date' ? 'appointment-date-error appointment-date-help' : 'appointment-date-help'}
+                          className="input-field h-14 bg-white pl-12 pr-4 text-base font-bold text-ink shadow-sm dark:bg-slate-800 dark:text-white"
+                        />
                       </div>
-                      <p className="text-sm font-medium text-primary-600 dark:text-primary-400 mt-0.5">{doctor.specialty}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                         <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" /> Verified</span>
-                         <span>•</span>
-                         <span>{doctor.experience}</span>
+                      {validationField === 'date' && (
+                        <p id="appointment-date-error" role="alert" className="mt-2 flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          {validationError}
+                        </p>
+                      )}
+                      <p id="appointment-date-help" className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">Booking is available from today onward.</p>
+                    </div>
+                  </Card>
+                )}
+
+                {currentStep === 3 && (
+                  <Card className="overflow-hidden p-0">
+                    <div className="flex items-center gap-4 border-b border-primary-100 bg-gradient-to-r from-primary-50 to-cyan-50/70 px-5 py-5 dark:border-primary-900/60 dark:from-primary-900/40 dark:to-cyan-950/20 sm:px-7 sm:py-6">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                        <Clock className="h-6 w-6" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">Available schedule</p>
+                        <p className="mt-1 text-lg font-extrabold text-ink dark:text-white">{date ? formatDate(date) : 'Select a time slot'}</p>
                       </div>
+                    </div>
+                    <div className="p-5 sm:p-7">
+                      <fieldset>
+                        <legend className="label text-ink dark:text-slate-200">Select a time</legend>
+                        <div
+                          ref={timeGroupRef}
+                          role="group"
+                          aria-label="Available time slots"
+                          aria-describedby={validationField === 'time' ? 'time-slot-error' : undefined}
+                          aria-invalid={validationField === 'time' || undefined}
+                          tabIndex={-1}
+                          className="grid grid-cols-2 gap-3 rounded-[18px] outline-none focus-visible:ring-4 focus-visible:ring-primary-500/15 sm:grid-cols-3 lg:grid-cols-4"
+                        >
+                          {timeSlots.map((slot) => {
+                            const isSelected = time === slot;
+
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => {
+                                  setTime(slot);
+                                  clearValidation('time');
+                                }}
+                                aria-pressed={isSelected}
+                                className={cn(
+                                  'relative min-h-14 rounded-2xl border px-3 py-3 text-sm font-extrabold outline-none transition-all focus-visible:ring-4 focus-visible:ring-primary-500/20',
+                                  isSelected
+                                    ? 'border-primary-600 bg-primary-600 text-white shadow-md shadow-primary-600/20'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:border-primary-300 hover:bg-primary-50/60 hover:text-primary-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:border-primary-700 dark:hover:bg-primary-900/30 dark:hover:text-primary-200'
+                                )}
+                              >
+                                {slot}
+                                {isSelected && <Check className="absolute right-2.5 top-2.5 h-3.5 w-3.5" aria-hidden="true" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {validationField === 'time' && (
+                          <p id="time-slot-error" role="alert" className="mt-3 flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            {validationError}
+                          </p>
+                        )}
+                      </fieldset>
+                    </div>
+                  </Card>
+                )}
+
+                {currentStep === 4 && (
+                  <div className="space-y-5">
+                    <Card className="overflow-hidden p-0">
+                      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:px-6">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+                          <Stethoscope className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-extrabold text-ink dark:text-white">Appointment summary</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Review your consultation details</p>
+                        </div>
+                      </div>
+                      <dl className="divide-y divide-slate-100 px-5 dark:divide-slate-800 sm:px-6">
+                        <div className="flex items-center gap-4 py-4">
+                          <dt className="w-24 shrink-0 text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Doctor</dt>
+                          <dd className="min-w-0 flex-1 text-right">
+                            <p className="truncate text-sm font-extrabold text-ink dark:text-white">{selectedDoctor?.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{selectedDoctor?.specialty}</p>
+                          </dd>
+                        </div>
+                        <div className="flex items-center gap-4 py-4">
+                          <dt className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Date</dt>
+                          <dd className="ml-auto text-right text-sm font-extrabold text-ink dark:text-white">{formatDate(date)}</dd>
+                        </div>
+                        <div className="flex items-center gap-4 py-4">
+                          <dt className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Time</dt>
+                          <dd className="ml-auto text-right text-sm font-extrabold text-ink dark:text-white">{time}</dd>
+                        </div>
+                      </dl>
+                    </Card>
+
+                    <fieldset>
+                      <legend className="mb-3 text-lg font-extrabold tracking-tight text-ink dark:text-white">Consultation method</legend>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {consultationOptions.map((option) => {
+                          const Icon = option.icon;
+                          const isSelected = type === option.value;
+
+                          return (
+                            <label
+                              key={option.value}
+                              htmlFor={`consultation-${option.value}`}
+                              className={cn(
+                                'flex cursor-pointer items-center gap-4 rounded-[20px] border-2 bg-white p-4 transition-all focus-within:ring-4 focus-within:ring-primary-500/20 dark:bg-slate-900 sm:p-5',
+                                isSelected
+                                  ? 'border-primary-600 bg-primary-50/70 shadow-soft dark:border-primary-500 dark:bg-primary-900/30'
+                                  : 'border-slate-200 hover:border-primary-300 dark:border-slate-800 dark:hover:border-primary-700'
+                              )}
+                            >
+                              <input
+                                id={`consultation-${option.value}`}
+                                type="radio"
+                                name="type"
+                                value={option.value}
+                                checked={isSelected}
+                                onChange={() => setType(option.value)}
+                                className="sr-only"
+                              />
+                              <span className={cn(
+                                'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors',
+                                isSelected ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300'
+                              )} aria-hidden="true">
+                                <Icon className="h-6 w-6" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-extrabold text-ink dark:text-white">{option.title}</span>
+                                <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">{option.description}</span>
+                              </span>
+                              <span className={cn(
+                                'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2',
+                                isSelected ? 'border-primary-600 dark:border-primary-400' : 'border-slate-300 dark:border-slate-600'
+                              )} aria-hidden="true">
+                                {isSelected && <span className="h-3 w-3 rounded-full bg-primary-600 dark:bg-primary-400" />}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+
+                    <Card className="overflow-hidden p-0 transition-shadow focus-within:border-primary-500 focus-within:ring-4 focus-within:ring-primary-500/10">
+                      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-4 dark:border-slate-800 dark:bg-slate-800/50 sm:px-6">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                          <FileText className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                          <label htmlFor="appointment-notes" className="text-sm font-extrabold text-ink dark:text-white">Additional details</label>
+                          <p id="appointment-notes-help" className="text-xs text-slate-500 dark:text-slate-400">Optional · Briefly describe your symptoms</p>
+                        </div>
+                      </div>
+                      <textarea
+                        id="appointment-notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        aria-describedby="appointment-notes-help"
+                        placeholder="Share anything you want your doctor to know before the consultation..."
+                        rows={5}
+                        className="min-h-[140px] w-full resize-y border-0 bg-white p-5 text-[15px] leading-7 text-slate-700 outline-none placeholder:text-slate-400 focus:ring-0 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 sm:p-6"
+                      />
+                    </Card>
+                  </div>
+                )}
+              </motion.section>
+            </div>
+
+            <aside className="hidden lg:block" aria-label="Appointment summary">
+              <Card className="sticky top-4 overflow-hidden p-0" aria-live="polite">
+                <div className="border-b border-primary-100 bg-gradient-to-br from-primary-50 to-cyan-50/60 px-6 py-5 dark:border-primary-900/60 dark:from-primary-900/40 dark:to-slate-900">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white text-primary-600 shadow-sm dark:bg-slate-900 dark:text-primary-300">
+                      <CalendarCheck2 className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-extrabold text-ink dark:text-white">Appointment summary</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Your booking at a glance</p>
                     </div>
                   </div>
-                  {!doctor.available && (
-                    <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-950/60 backdrop-blur-[1px] flex items-center justify-center">
-                       <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase tracking-wider">
-                         Unavailable
-                       </span>
+                </div>
+                <div className="p-6">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Doctor</p>
+                  {selectedDoctor ? (
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-600 text-sm font-extrabold text-white shadow-md shadow-primary-600/20" aria-hidden="true">
+                        {getDoctorInitials(selectedDoctor.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-extrabold text-ink dark:text-white">{selectedDoctor.name}</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-primary-700 dark:text-primary-300">{selectedDoctor.specialty}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 p-3 dark:border-slate-700">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                        <Stethoscope className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <p className="text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">Choose an available doctor to begin.</p>
                     </div>
                   )}
-                </button>
-              ))
-            )}
-          </div>
-        </motion.section>
 
-        {/* Step 2: Date & Time */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center gap-3 mb-4">
-             <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-primary-600 text-white flex items-center justify-center font-bold text-sm">2</div>
-             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Schedule</h2>
-          </div>
-          <Card className="p-6 sm:p-8 bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label className="label text-slate-700 dark:text-slate-300">Select Date</label>
-                <div className="relative">
-                   <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-5 h-5 pointer-events-none" />
-                   <input
-                     type="date"
-                     value={date}
-                     onChange={(e) => setDate(e.target.value)}
-                     min={getMinDate()}
-                     className="input-field pl-12 h-14 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500 text-lg w-full text-slate-900 dark:text-white"
-                     required
-                   />
+                  <div className="my-5 h-px bg-slate-100 dark:bg-slate-800" />
+
+                  <dl className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <dt className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                      </dt>
+                      <dd className="min-w-0">
+                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">Date</p>
+                        <p className="truncate text-sm font-extrabold text-ink dark:text-white">{formatDate(date)}</p>
+                      </dd>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <dt className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        <Clock className="h-4 w-4" aria-hidden="true" />
+                      </dt>
+                      <dd className="min-w-0">
+                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">Time</p>
+                        <p className="truncate text-sm font-extrabold text-ink dark:text-white">{time || 'Not selected'}</p>
+                      </dd>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <dt className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        {type === 'audio' ? <PhoneCall className="h-4 w-4" aria-hidden="true" /> : <Video className="h-4 w-4" aria-hidden="true" />}
+                      </dt>
+                      <dd className="min-w-0">
+                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">Consultation</p>
+                        <p className="truncate text-sm font-extrabold text-ink dark:text-white">{type === 'audio' ? 'Voice call' : 'Video call'}</p>
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
-              </div>
-              <div>
-                <label className="label text-slate-700 dark:text-slate-300">Select Time Slot</label>
-                <div className="relative">
-                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 w-5 h-5 pointer-events-none" />
-                   <select
-                     value={time}
-                     onChange={(e) => setTime(e.target.value)}
-                     className="input-field pl-12 h-14 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-primary-500 text-lg appearance-none w-full text-slate-900 dark:text-white"
-                     required
-                   >
-                     <option value="" disabled className="bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">Choose an available slot</option>
-                     {timeSlots.map((slot) => (
-                       <option key={slot} value={slot} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{slot}</option>
-                     ))}
-                   </select>
+                <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/50">
+                  <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Review each step before confirming your appointment.</p>
                 </div>
-              </div>
-            </div>
-          </Card>
-        </motion.section>
-
-        {/* Step 3: Type */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center gap-3 mb-4">
-             <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-primary-600 text-white flex items-center justify-center font-bold text-sm">3</div>
-             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Consultation Method</h2>
+              </Card>
+            </aside>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className={cn(
-              "cursor-pointer flex items-center p-5 border-2 rounded-2xl transition-all",
-              type === 'video' ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/30" : "border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 bg-white dark:bg-slate-900"
-            )}>
-              <input type="radio" name="type" className="sr-only" checked={type === 'video'} onChange={() => setType('video')} />
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mr-4", type === 'video' ? "bg-primary-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
-                <Video size={24} />
-              </div>
-              <div className="flex-1">
-                 <h4 className="font-bold text-slate-900 dark:text-white text-lg">Video Call</h4>
-                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">High quality face-to-face</p>
-              </div>
-              <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center", type === 'video' ? "border-primary-600 dark:border-primary-500" : "border-slate-300 dark:border-slate-600")}>
-                 {type === 'video' && <div className="w-3 h-3 bg-primary-600 dark:bg-primary-500 rounded-full" />}
-              </div>
-            </label>
-
-            <label className={cn(
-              "cursor-pointer flex items-center p-5 border-2 rounded-2xl transition-all",
-              type === 'audio' ? "border-primary-600 bg-primary-50/50 dark:bg-primary-950/30" : "border-slate-200 dark:border-slate-800 hover:border-primary-300 dark:hover:border-primary-700 bg-white dark:bg-slate-900"
-            )}>
-              <input type="radio" name="type" className="sr-only" checked={type === 'audio'} onChange={() => setType('audio')} />
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mr-4", type === 'audio' ? "bg-primary-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400")}>
-                <PhoneCall size={24} />
-              </div>
-              <div className="flex-1">
-                 <h4 className="font-bold text-slate-900 dark:text-white text-lg">Voice Call</h4>
-                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Low bandwidth connection</p>
-              </div>
-              <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center", type === 'audio' ? "border-primary-600 dark:border-primary-500" : "border-slate-300 dark:border-slate-600")}>
-                 {type === 'audio' && <div className="w-3 h-3 bg-primary-600 dark:bg-primary-500 rounded-full" />}
-              </div>
-            </label>
-          </div>
-        </motion.section>
-
-        {/* Step 4: Notes */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center gap-3 mb-4">
-             <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-primary-600 text-white flex items-center justify-center font-bold text-sm">4</div>
-             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Additional Details <span className="text-slate-400 dark:text-slate-500 font-normal text-base">(Optional)</span></h2>
-          </div>
-          <Card className="p-0 overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-shadow">
-             <div className="flex items-center gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
-               <FileText className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-               <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Briefly describe your symptoms</p>
-             </div>
-             <textarea
-               value={notes}
-               onChange={(e) => setNotes(e.target.value)}
-               placeholder="e.g., I have been experiencing a mild fever and headache for the past 2 days..."
-               className="w-full min-h-[120px] resize-none p-6 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-900 border-none focus:ring-0 outline-none"
-               rows={4}
-             />
-          </Card>
-        </motion.section>
-
-        {/* Submit */}
-        <motion.div variants={itemVariants} className="pt-6 border-t border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate('/dashboard')}
-            className="w-full sm:w-auto h-14 px-8 text-slate-600 dark:text-slate-300 font-semibold"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={!selectedDoctor || !date || !time || submitting}
-            isLoading={submitting}
-            className="w-full sm:w-auto h-14 px-10 text-lg shadow-premium shadow-primary-600/20 dark:shadow-primary-900/30"
-            loadingText="Confirming..."
-          >
-            {!submitting && "Confirm Appointment"}
-          </Button>
-        </motion.div>
-      </form>
-    </motion.main>
+        </form>
+      </motion.div>
+    </PageShell>
   );
 }

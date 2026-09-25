@@ -8,6 +8,7 @@ import {
   getPharmacies
 } from '../controllers/medicineController.js';
 import { authenticate } from '../middleware/auth.js';
+import { searchNearbyMedicines } from '../controllers/medicineSearchController.js';
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ router.get('/', getMedicines);
 
 // GET /api/medicines/search - Search medicines by name
 router.get('/search', searchMedicines);
+
+router.post('/search', searchNearbyMedicines);
 
 // GET /api/medicines/pharmacies - Get list of pharmacies
 router.get('/pharmacies', getPharmacies);

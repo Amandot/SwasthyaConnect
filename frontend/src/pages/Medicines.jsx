@@ -1,13 +1,28 @@
 import { useState, useEffect } from 'react';
 import { medicineAPI } from '../services/api';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { 
-  Search, Pill, MapPin, Navigation, 
-  CheckCircle2, XCircle, ChevronRight 
+import {
+  AlertCircle,
+  ChevronRight,
+  MapPin,
+  Navigation,
+  Pill,
+  Search,
+  Store,
+  XCircle
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import {
+  EmptyState,
+  IconBadge,
+  InlineNotice,
+  PageHeader,
+  PageShell,
+  SectionHeader,
+  Skeleton,
+  StatusBadge
+} from '../components/ui/PagePrimitives';
 
 export default function Medicines() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,16 +30,23 @@ export default function Medicines() {
   const [pharmacies, setPharmacies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [pharmaciesLoading, setPharmaciesLoading] = useState(true);
+  const [pharmacyError, setPharmacyError] = useState('');
+  const [searchError, setSearchError] = useState('');
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     fetchPharmacies();
   }, []);
 
   const fetchPharmacies = async () => {
+    setPharmaciesLoading(true);
+    setPharmacyError('');
     try {
       const response = await medicineAPI.getPharmacies();
       setPharmacies(response.data);
-    } catch (error) {
+    } catch {
+      setPharmacyError('The pharmacy directory could not be loaded from the service. Showing the available directory instead.');
       setPharmacies([
         { name: 'Mittal Medicos', address: 'Cinema Road, Guru Nanak Pura', city: 'Nabha' },
         { name: 'Prem Medical Store', address: 'Bhawra Bazar, Near Aggarwal Dharamshala', city: 'Nabha' },
@@ -37,6 +59,8 @@ export default function Medicines() {
         { name: 'Shakti Medical Agency', address: 'Cinema Road, Guru Nanak Pura', city: 'Nabha' },
         { name: 'Dhanjal Medical Hall', address: 'Civil Hospital Road', city: 'Nabha' }
       ]);
+    } finally {
+      setPharmaciesLoading(false);
     }
   };
 
@@ -46,10 +70,12 @@ export default function Medicines() {
 
     setLoading(true);
     setSearched(true);
+    setSearchError('');
     try {
       const response = await medicineAPI.searchMedicines(searchQuery);
       setMedicines(response.data);
-    } catch (error) {
+    } catch {
+      setSearchError('Live search is unavailable right now. Showing sample availability results instead.');
       const demoMedicines = {
         [searchQuery]: [
           { pharmacy: 'Mittal Medicos', address: 'Cinema Road, Guru Nanak Pura, Nabha', available: true, price: 25, distance: 1.2 },
@@ -75,7 +101,8 @@ export default function Medicines() {
     setSearchQuery(medicine);
     setLoading(true);
     setSearched(true);
-    
+    setSearchError('Quick search is showing sample availability results.');
+
     setTimeout(() => {
       const demoMedicines = {
         [medicine]: [
@@ -95,191 +122,346 @@ export default function Medicines() {
   };
 
   const handleGetDirections = (pharmacyName, address, e) => {
-    // Prevent event bubbling if called from a button inside a clickable element
     if (e) {
       e.stopPropagation();
     }
-    
-    // Open Google Maps with the full pharmacy address for accurate location
+
     const fullAddress = address ? `${pharmacyName}, ${address}` : pharmacyName;
     const searchQuery = encodeURIComponent(fullAddress);
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
-    
-    // Open in new tab
+
     window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setMedicines([]);
+    setSearched(false);
+    setSearchError('');
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: {
+      opacity: 1,
+      transition: { duration: reduceMotion ? 0 : 0.35, staggerChildren: reduceMotion ? 0 : 0.07 }
+    }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: reduceMotion ? 0 : 0.28, ease: 'easeOut' }
+    }
   };
 
   return (
-    <motion.main 
-      className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-5xl"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">Medicine Finder</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Locate prescribed medicines at nearby pharmacies instantly.</p>
-      </div>
+    <PageShell className="py-8 sm:py-10">
+      <motion.div variants={containerVariants} initial={reduceMotion ? false : 'hidden'} animate="visible">
+        <PageHeader
+          eyebrow="Local pharmacy finder"
+          title="Find medicines nearby"
+          description="Search for a medicine to view pharmacy availability, pricing, and directions."
+          icon={Pill}
+        />
 
-      <Card className="mb-8 p-6 sm:p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for a medicine (e.g., Paracetamol)..."
-              className="input-field pl-12 h-14 text-lg border-2 border-slate-200 dark:border-slate-700 focus:border-primary-500 bg-white dark:bg-slate-800 dark:text-white"
-            />
+        {pharmacyError && (
+          <InlineNotice icon={AlertCircle} title="Using the available pharmacy directory" tone="warning" className="mb-6">
+            {pharmacyError}
+          </InlineNotice>
+        )}
+
+        <Card className="mb-8 overflow-hidden p-0 shadow-premium">
+          <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-br from-primary-50/80 via-white to-slate-50 p-6 dark:border-slate-800 dark:from-primary-900/25 dark:via-slate-900 dark:to-slate-900 sm:flex-row sm:items-center sm:p-8">
+            <IconBadge icon={Pill} tone="primary" size="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow">Medicine search</p>
+              <h2 className="text-xl font-extrabold tracking-tight text-ink dark:text-white sm:text-2xl">What are you looking for?</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">Use the medicine name exactly as it appears on your prescription.</p>
+            </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-primary-700 dark:border-primary-800/70 dark:bg-slate-900/70 dark:text-primary-300">
+              <Store className="h-3.5 w-3.5" aria-hidden="true" />
+              Pharmacy availability
+            </span>
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            className="h-14 sm:w-40"
-            disabled={loading || !searchQuery.trim()}
-            isLoading={loading}
-          >
-            {!loading && <><Search className="w-5 h-5 mr-2" /> Search</>}
-          </Button>
-        </form>
 
-        <div className="mt-6">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">Frequently Searched</p>
-          <div className="flex flex-wrap gap-2">
-            {commonMedicines.map((medicine) => (
-              <button
-                key={medicine}
-                onClick={() => handleQuickSearch(medicine)}
-                className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium hover:border-primary-300 dark:hover:border-primary-600 hover:text-primary-700 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+          <form onSubmit={handleSearch} className="p-6 sm:p-8">
+            <label htmlFor="medicine-search" className="label">Medicine name</label>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                <input
+                  id="medicine-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search for a medicine, e.g. Paracetamol"
+                  autoComplete="off"
+                  className="input-field h-16 border-2 border-slate-200 bg-white pl-14 pr-12 text-lg font-semibold dark:border-slate-700 dark:bg-slate-800/70"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear medicine search"
+                    className="absolute right-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-700 dark:hover:text-white"
+                  >
+                    <XCircle className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                icon={Search}
+                disabled={loading || !searchQuery.trim()}
+                isLoading={loading}
+                className="h-16 w-full sm:w-36"
+                loadingText="Searching"
               >
-                {medicine}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Card>
+                Search
+              </Button>
+            </div>
 
-      {searched && (
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-          {loading ? (
-            <Card className="animate-pulse p-8">
-              <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/3 mb-6"></div>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700"></div>
+            <div className="mt-7">
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Quick searches</p>
+              <div className="mt-3 flex flex-wrap gap-2.5">
+                {commonMedicines.map((medicine) => (
+                  <button
+                    key={medicine}
+                    type="button"
+                    onClick={() => handleQuickSearch(medicine)}
+                    className="inline-flex min-h-11 items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-[background-color,border-color,color] duration-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:bg-primary-900/35 dark:hover:text-primary-300"
+                  >
+                    {medicine}
+                  </button>
                 ))}
               </div>
-            </Card>
-          ) : Object.keys(medicines).length > 0 ? (
-            Object.entries(medicines).map(([medicineName, availability]) => (
-              <motion.div key={medicineName} variants={itemVariants}>
-                <Card className="overflow-hidden p-0 border-slate-200/60 dark:border-slate-700/60">
-                  <div className="p-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 rounded-xl flex items-center justify-center">
-                      <Pill size={24} />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{medicineName}</h2>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Showing availability in nearby pharmacies</p>
-                    </div>
-                  </div>
+            </div>
+          </form>
+        </Card>
 
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {availability.sort((a, b) => (b.available === a.available) ? 0 : a.available ? 1 : -1).map((item, index) => (
-                      <div key={index} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                        <div className="flex items-start gap-4">
-                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 border", item.available ? 'bg-emerald-50 dark:bg-emerald-950/50 text-brand-success border-emerald-100 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-950/50 text-brand-emergency border-red-100 dark:border-red-800')}>
-                            {item.available ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{item.pharmacy}</h3>
-                            {item.address && (
-                              <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{item.address}</p>
-                            )}
-                            <div className="flex items-center gap-3 mt-1 text-sm">
-                              <span className={cn("font-semibold flex items-center gap-1", item.available ? 'text-brand-success' : 'text-brand-emergency')}>
-                                <span className={cn("w-2 h-2 rounded-full", item.available ? 'bg-brand-success' : 'bg-brand-emergency')} />
-                                {item.available ? 'In Stock' : 'Out of Stock'}
-                              </span>
-                              <span className="text-slate-400">•</span>
-                              <span className="text-slate-500 dark:text-slate-400">{item.distance} km away</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {item.available && item.price && (
-                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t border-slate-100 dark:border-slate-800 sm:border-0 pt-4 sm:pt-0">
-                            <p className="text-xl font-bold text-slate-900 dark:text-white">₹{item.price}</p>
-                            <Button
-                              variant="ghost"
-                              className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 px-3 py-1 mt-1 font-medium sm:h-8"
-                              onClick={(e) => handleGetDirections(item.pharmacy, item.address, e)}
-                            >
-                              <Navigation className="w-4 h-4 mr-1.5" /> Directions
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <Card className="text-center p-12 py-20 flex flex-col items-center">
-              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                <Search className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+        <AnimatePresence mode="wait" initial={false}>
+          {loading ? (
+            <motion.div key="search-loading" variants={itemVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-8 w-56" />
+                </div>
+                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400" role="status">Searching pharmacies…</span>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Results Found</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm">We couldn't find "{searchQuery}" in our local database. Try searching for a different medicine or checking spelling.</p>
-            </Card>
-          )}
-        </motion.div>
-      )}
-
-      {!searched && (
-        <motion.div variants={itemVariants} className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin className="text-primary-600 dark:text-primary-400" />
-              Pharmacies in Your Area
-            </h2>
-            <Button variant="ghost" className="text-primary-600 dark:text-primary-400">View Map</Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pharmacies.map((pharmacy, index) => (
-              <Card
-                key={index}
-                hoverEffect
-                className="p-5 flex flex-col group cursor-pointer border-transparent hover:border-primary-200 dark:hover:border-primary-700"
-                onClick={() => handleGetDirections(pharmacy.name || pharmacy, `${pharmacy.address || ''}, ${pharmacy.city || 'Nabha'}`)}
-              >
-                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/60 transition-colors">
-                  <Pill size={24} />
-                </div>
-                <h3 className="font-bold text-slate-900 dark:text-white mb-1">{pharmacy.name || pharmacy}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{pharmacy.address || 'Nabha'}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">{(Math.random() * 2 + 0.5).toFixed(1)} km away • Open Now</p>
-                <div className="mt-auto flex items-center text-sm font-medium text-primary-600 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Get Directions <ChevronRight className="w-4 h-4 ml-1" />
-                </div>
+              <Card className="space-y-5 p-5 sm:p-6">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-2xl" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                    <Skeleton className="h-10 w-28 rounded-xl" />
+                  </div>
+                ))}
               </Card>
-            ))}
+            </motion.div>
+          ) : searched && Object.keys(medicines).length > 0 ? (
+            <motion.div key="search-results" variants={itemVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="space-y-5">
+              {searchError && (
+                <InlineNotice icon={AlertCircle} title="Sample availability shown" tone="warning">
+                  {searchError}
+                </InlineNotice>
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <SectionHeader
+                  eyebrow="Search results"
+                  title="Pharmacy availability"
+                  description="Availability and pricing are shown for each pharmacy result."
+                  className="mb-0 flex-1"
+                />
+                <span className="pb-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                  {Object.values(medicines).reduce((total, availability) => total + availability.length, 0)} results
+                </span>
+              </div>
+              {Object.entries(medicines).map(([medicineName, availability]) => (
+                <MedicineResultCard
+                  key={medicineName}
+                  medicineName={medicineName}
+                  availability={availability}
+                  onDirections={handleGetDirections}
+                  reduceMotion={reduceMotion}
+                />
+              ))}
+            </motion.div>
+          ) : searched ? (
+            <motion.div key="no-results" variants={itemVariants} initial={reduceMotion ? false : 'hidden'} animate="visible">
+              <EmptyState
+                icon={Search}
+                title="No results found"
+                description={`We couldn't find “${searchQuery || 'that medicine'}” in our local database. Try a different medicine name or check the spelling.`}
+                action={<Button variant="secondary" onClick={clearSearch}>Clear search</Button>}
+                className="min-h-[25rem]"
+              />
+            </motion.div>
+          ) : (
+            <motion.div key="pharmacy-directory" variants={itemVariants} initial={reduceMotion ? false : 'hidden'} animate="visible">
+              <SectionHeader
+                eyebrow="Local directory"
+                title="Pharmacies in your area"
+                description="Browse pharmacy details available through the service."
+                action={!pharmaciesLoading && pharmacies.length > 0 ? <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{pharmacies.length} listed</span> : null}
+                className="mb-6"
+              />
+              {pharmaciesLoading ? (
+                <PharmacySkeleton />
+              ) : pharmacies.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {pharmacies.map((pharmacy, index) => (
+                    <PharmacyCard key={index} pharmacy={pharmacy} onDirections={handleGetDirections} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Store}
+                  title="No pharmacies listed"
+                  description="Pharmacy details will appear here when they are available from the service."
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </PageShell>
+  );
+}
+
+function MedicineResultCard({ medicineName, availability, onDirections, reduceMotion }) {
+  return (
+    <motion.div variants={reduceMotion ? undefined : { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }} initial={reduceMotion ? false : 'hidden'} animate="visible">
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/80 p-5 dark:border-slate-800 dark:bg-slate-800/45 sm:flex-row sm:items-center sm:p-6">
+          <IconBadge icon={Pill} tone="primary" size="md" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">Medicine</p>
+            <h2 className="mt-1 truncate text-xl font-extrabold tracking-tight text-ink dark:text-white sm:text-2xl">{medicineName}</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Availability by pharmacy</p>
           </div>
-        </motion.div>
-      )}
-    </motion.main>
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <Store className="h-3.5 w-3.5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+            {availability.length} {availability.length === 1 ? 'pharmacy' : 'pharmacies'}
+          </span>
+        </div>
+
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {availability.sort((a, b) => (b.available === a.available) ? 0 : a.available ? 1 : -1).map((item, index) => (
+            <article key={index} className="flex flex-col gap-5 p-5 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/35 lg:flex-row lg:items-center lg:justify-between lg:p-6">
+              <div className="flex min-w-0 items-start gap-4">
+                <IconBadge icon={Store} tone={item.available ? 'success' : 'danger'} size="md" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-lg font-extrabold tracking-tight text-ink dark:text-white">{item.pharmacy}</h3>
+                    <StatusBadge
+                      status={item.available ? 'available' : 'unavailable'}
+                      label={item.available ? 'In Stock' : 'Out of Stock'}
+                    />
+                  </div>
+                  {item.address && (
+                    <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                      {item.address}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    {item.distance != null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                        {item.distance} km away
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4 dark:border-slate-800 lg:min-w-[9.5rem] lg:justify-end lg:border-0 lg:pt-0">
+                {item.available && item.price && (
+                  <div className="text-left lg:text-right">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">Price</p>
+                    <p className="mt-0.5 text-xl font-extrabold text-ink dark:text-white">₹{item.price}</p>
+                  </div>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Navigation}
+                  onClick={(event) => onDirections(item.pharmacy, item.address, event)}
+                  aria-label={`Get directions to ${item.pharmacy}`}
+                  className="shrink-0"
+                >
+                  Directions
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+function PharmacyCard({ pharmacy, onDirections }) {
+  return (
+    <Card
+      hoverEffect
+      onClick={() => onDirections(pharmacy.name || pharmacy, `${pharmacy.address || ''}, ${pharmacy.city || 'Nabha'}`)}
+      className="group flex h-full cursor-pointer flex-col border-transparent transition-[border-color,box-shadow] hover:border-primary-200 dark:hover:border-primary-800"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <IconBadge icon={Store} tone="primary" size="md" />
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          Pharmacy
+        </span>
+      </div>
+      <h3 className="mt-5 text-lg font-extrabold tracking-tight text-ink dark:text-white">{pharmacy.name || pharmacy}</h3>
+      <div className="mt-2 min-w-0 flex-1">
+        {pharmacy.address && (
+          <p className="flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+            {pharmacy.address}
+          </p>
+        )}
+        {pharmacy.city && <p className="mt-1 pl-6 text-sm text-slate-500 dark:text-slate-400">{pharmacy.city}</p>}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={Navigation}
+        onClick={(event) => onDirections(pharmacy.name || pharmacy, `${pharmacy.address || ''}, ${pharmacy.city || 'Nabha'}`, event)}
+        aria-label={`Get directions to ${pharmacy.name || pharmacy}`}
+        className="mt-5 w-full justify-between px-3 text-primary-700 dark:text-primary-300"
+      >
+        Get directions
+        <ChevronRight className="ml-auto h-4 w-4" aria-hidden="true" />
+      </Button>
+    </Card>
+  );
+}
+
+function PharmacySkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <Card key={item} className="space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-11 w-11 rounded-[14px]" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </Card>
+      ))}
+      <span className="sr-only" role="status">Loading pharmacies</span>
+    </div>
   );
 }

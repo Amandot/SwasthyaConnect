@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, isDemoFirebase } from '../firebase/firebaseConfig';
+import AuthLayout from '../components/AuthLayout';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Stethoscope, ArrowRight, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react';
 
 export default function DoctorSignup({ onLogin }) {
   const [name, setName] = useState('');
@@ -13,6 +13,7 @@ export default function DoctorSignup({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -37,7 +38,7 @@ export default function DoctorSignup({ onLogin }) {
     setLoading(true);
 
     try {
-      // Demo mode: don't hit Firebase, just simulate a doctor account
+      // In demo mode: don't hit Firebase, just simulate a doctor account
       if (isDemoFirebase) {
         const demoUser = {
           uid: 'demo-doctor-signup',
@@ -102,135 +103,137 @@ export default function DoctorSignup({ onLogin }) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-brand-background dark:bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-slate-200/50 dark:bg-slate-800/30 rounded-full blur-[100px] -z-10 -translate-x-1/3 -translate-y-1/3" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-100/30 dark:bg-blue-950/20 rounded-full blur-[80px] -z-10 translate-x-1/3 translate-y-1/3" />
-
-      <Card className="max-w-md w-full p-8 relative z-10 shadow-premium border-slate-100/50 dark:border-slate-700/50 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-800/50">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Stethoscope size={32} />
+    <AuthLayout
+      audience="doctor"
+      eyebrow="Doctor account"
+      title="Create your account"
+      description="Set up your doctor portal to review appointments, join consultation rooms, and continue your care workflow."
+      error={error}
+      backLink={{ to: '/login', label: 'Portal selection' }}
+      switchLink={{ to: '/signup/patient', label: 'Switch to patient sign up', shortLabel: 'Patient' }}
+      footer={(
+        <>
+          Already have a doctor account?{' '}
+          <Link to="/login/doctor" className="font-bold text-primary-700 hover:text-primary-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-300 dark:hover:text-primary-200">
+            Sign in instead
+          </Link>
+        </>
+      )}
+    >
+      <form onSubmit={handleSignup} className="space-y-4">
+        <div>
+          <label htmlFor="name" className="mb-2.5 block text-[15px] font-bold text-ink dark:text-slate-200">
+            Full name <span className="text-primary-600 dark:text-primary-400" aria-hidden="true">*</span>
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+              <UserRound className="h-5 w-5" />
+            </span>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field h-14 pl-12"
+              placeholder="Your full name"
+              aria-describedby={error ? 'auth-error' : undefined}
+            />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Create Doctor Account</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Sign up to manage appointments and patient records securely.
-          </p>
         </div>
 
-        <div className="space-y-6">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm flex items-center">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
+        <div>
+          <label htmlFor="email" className="mb-2.5 block text-[15px] font-bold text-ink dark:text-slate-200">
+            Email address <span className="text-primary-600 dark:text-primary-400" aria-hidden="true">*</span>
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+              <Mail className="h-5 w-5" />
+            </span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-field h-14 pl-12"
+              placeholder="doctor@hospital.com"
+              aria-describedby={error ? 'auth-error' : undefined}
+            />
+          </div>
+        </div>
 
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <label htmlFor="name" className="label">
-                Full Name
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
-                  <UserIcon className="h-5 w-5" />
-                </span>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input-field pl-12"
-                  placeholder="Your full name"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="label">
-                Email Address
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
-                  <Mail className="h-5 w-5" />
-                </span>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-12"
-                  placeholder="doctor@hospital.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="label">
-                Password
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
-                  <Lock className="h-5 w-5" />
-                </span>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-12"
-                  placeholder="Create a password"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="label">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-500">
-                  <Lock className="h-5 w-5" />
-                </span>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field pl-12"
-                  placeholder="Re-enter your password"
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6"
-              isLoading={loading}
-              variant="secondary"
+        <div>
+          <label htmlFor="password" className="mb-2.5 block text-[15px] font-bold text-ink dark:text-slate-200">
+            Password <span className="text-primary-600 dark:text-primary-400" aria-hidden="true">*</span>
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+              <LockKeyhole className="h-5 w-5" />
+            </span>
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field h-14 pl-12 pr-14"
+              placeholder="Create a password"
+              aria-describedby={error ? 'auth-error' : undefined}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute inset-y-0 right-1.5 flex min-h-11 min-w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-700/60 dark:hover:text-white"
+              aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}
+              aria-pressed={showPassword}
             >
-              {!loading && (
-                <>
-                  Create doctor account <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
+              {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+            </button>
+          </div>
         </div>
-      </Card>
-    </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="mb-2.5 block text-[15px] font-bold text-ink dark:text-slate-200">
+            Confirm password <span className="text-primary-600 dark:text-primary-400" aria-hidden="true">*</span>
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500" aria-hidden="true">
+              <LockKeyhole className="h-5 w-5" />
+            </span>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="input-field h-14 pl-12 pr-14"
+              placeholder="Re-enter your password"
+              aria-describedby={error ? 'auth-error' : undefined}
+            />
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="mt-6 w-full bg-ink-950 hover:bg-ink-900 focus-visible:ring-ink-700 dark:bg-slate-100 dark:text-ink-950 dark:hover:bg-white dark:focus-visible:ring-slate-300"
+          size="lg"
+          isLoading={loading}
+          loadingText="Creating account…"
+        >
+          Create doctor account
+          <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
-

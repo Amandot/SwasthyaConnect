@@ -1,20 +1,31 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  CalendarDays,
+  Clock3,
+  Headphones,
+  Stethoscope,
+  Video
+} from 'lucide-react';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { IconBadge, StatusBadge } from './ui/PagePrimitives';
+import { cn } from '../lib/utils';
 
-function AppointmentCard({ appointment, onCancel }) {
+function AppointmentCard({ appointment, onCancel, featured = false }) {
   const navigate = useNavigate();
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'scheduled':
-        return <span className="status-badge status-scheduled dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">Scheduled</span>;
+        return <StatusBadge status="scheduled" />;
       case 'completed':
-        return <span className="status-badge status-completed dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">Completed</span>;
+        return <StatusBadge status="completed" />;
       case 'cancelled':
-        return <span className="status-badge status-cancelled dark:bg-red-950/40 dark:text-red-300 dark:border-red-800">Cancelled</span>;
+        return <StatusBadge status="cancelled" />;
       case 'in-progress':
-        return <span className="status-badge bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800">In Progress</span>;
+        return <StatusBadge status="in-progress" label="In Progress" />;
       default:
-        return <span className="status-badge bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{status}</span>;
+        return <span className="status-badge bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 border border-slate-200">{status}</span>;
     }
   };
 
@@ -28,124 +39,156 @@ function AppointmentCard({ appointment, onCancel }) {
     });
   };
 
+  const roomId = appointment.room_id || appointment.roomId;
   const handleJoinCall = () => {
-    navigate(`/consultation/${appointment.room_id || appointment.roomId}`);
+    if (roomId) navigate(`/consultation/${roomId}`);
   };
 
-  return (
-    <div className="card hover:shadow-md transition-shadow">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          {/* Doctor Avatar */}
-          <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center flex-shrink-0 border border-primary-200/50 dark:border-primary-800/50">
-            <DoctorIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-          </div>
+  const doctorName = appointment.doctor?.name || appointment.doctorName || 'Doctor';
+  const displayDoctorName = /^dr\./i.test(doctorName) ? doctorName : `Dr. ${doctorName}`;
 
-          {/* Appointment Details */}
-          <div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-              Dr. {appointment.doctor?.name || appointment.doctorName || 'Doctor'}
-            </h3>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1">
-                <CalendarIcon className="w-4 h-4" />
-                {formatDate(appointment.date)}
-              </span>
-              <span className="flex items-center gap-1">
-                <ClockIcon className="w-4 h-4" />
-                {appointment.time || '10:00 AM'}
-              </span>
-              <span className="flex items-center gap-1">
-                {appointment.type === 'video' ? (
-                  <VideoIcon className="w-4 h-4" />
-                ) : (
-                  <PhoneIcon className="w-4 h-4" />
-                )}
-                {appointment.type === 'video' ? 'Video Call' : 'Audio Call'}
-              </span>
-            </div>
-            {appointment.notes && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Note: {appointment.notes}
+  return (
+    <Card
+      hoverEffect
+      role="article"
+      className={cn(
+        'group relative overflow-hidden',
+        featured
+          ? 'border-primary-100 bg-gradient-to-br from-white via-white to-primary-50/80 dark:border-primary-900/50 dark:from-slate-900 dark:via-slate-900 dark:to-primary-950/30'
+          : 'p-5 sm:p-6'
+      )}
+    >
+      {featured && (
+        <>
+          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary-100/60 blur-3xl dark:bg-primary-900/20" aria-hidden="true" />
+          <div className="absolute bottom-0 left-0 h-1 w-24 rounded-full bg-primary-500 dark:bg-primary-400" aria-hidden="true" />
+        </>
+      )}
+
+      <div className={cn('relative', featured && 'p-6 sm:p-8')}>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <IconBadge
+              icon={Stethoscope}
+              tone={featured ? 'primary' : 'neutral'}
+              size={featured ? 'lg' : 'md'}
+            />
+            <div className="min-w-0">
+              {featured && (
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">
+                  Appointment spotlight
+                </p>
+              )}
+              <h3 className={cn(
+                'font-extrabold tracking-tight text-ink dark:text-white',
+                featured ? 'text-xl sm:text-2xl' : 'text-lg'
+              )}>
+                {displayDoctorName}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {appointment.type === 'video' ? 'Video consultation' : 'Audio consultation'}
               </p>
-            )}
+            </div>
           </div>
+          {getStatusBadge(appointment.status)}
         </div>
 
-        {/* Status and Actions */}
-        <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-          {getStatusBadge(appointment.status)}
-
-          <div className="flex gap-2">
-            {appointment.status === 'scheduled' && (
-              <>
-                <button
-                  onClick={handleJoinCall}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-sm"
-                >
-                  <VideoIcon className="w-4 h-4" />
-                  Join Call
-                </button>
-                {onCancel && (
-                  <button
-                    onClick={() => onCancel(appointment.id)}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
+        {featured ? (
+          <dl className="mt-7 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-primary-100/80 bg-white/80 p-4 dark:border-primary-900/50 dark:bg-slate-950/20">
+              <dt className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                <CalendarDays className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                Date
+              </dt>
+              <dd className="mt-2 text-sm font-bold text-ink dark:text-white">
+                <time dateTime={appointment.date}>{formatDate(appointment.date)}</time>
+              </dd>
+            </div>
+            <div className="rounded-2xl border border-primary-100/80 bg-white/80 p-4 dark:border-primary-900/50 dark:bg-slate-950/20">
+              <dt className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                <Clock3 className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                Time
+              </dt>
+              <dd className="mt-2 text-sm font-bold text-ink dark:text-white">
+                {appointment.time || '10:00 AM'}
+              </dd>
+            </div>
+            <div className="rounded-2xl border border-primary-100/80 bg-white/80 p-4 dark:border-primary-900/50 dark:bg-slate-950/20">
+              <dt className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                {appointment.type === 'video' ? (
+                  <Video className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                ) : (
+                  <Headphones className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
                 )}
-              </>
-            )}
-            {appointment.status === 'completed' && (
-              <button className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                View Summary
-              </button>
-            )}
+                Consultation
+              </dt>
+              <dd className="mt-2 text-sm font-bold text-ink dark:text-white">
+                {appointment.type === 'video' ? 'Video call' : 'Audio call'}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <time dateTime={appointment.date}>{formatDate(appointment.date)}</time>
+            </span>
+            <span className="flex items-center gap-2">
+              <Clock3 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {appointment.time || '10:00 AM'}
+            </span>
+            <span className="flex items-center gap-2">
+              {appointment.type === 'video' ? (
+                <Video className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ) : (
+                <Headphones className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              {appointment.type === 'video' ? 'Video Call' : 'Audio Call'}
+            </span>
           </div>
+        )}
+
+        {appointment.notes && (
+          <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+            Note: {appointment.notes}
+          </p>
+        )}
+
+        <div className={cn(
+          'flex flex-wrap items-center gap-3',
+          featured && 'mt-7 border-t border-primary-100/80 pt-6 dark:border-primary-900/50'
+        )}>
+          {appointment.status === 'scheduled' && (
+            <>
+              <Button
+                type="button"
+                size={featured ? 'md' : 'sm'}
+                 icon={Video}
+                 disabled={!roomId}
+                 onClick={handleJoinCall}
+              >
+                 {roomId ? 'Join Call' : 'Room unavailable'}
+              </Button>
+              {onCancel && (
+                <Button
+                  type="button"
+                  size={featured ? 'md' : 'sm'}
+                  variant="ghost"
+                  onClick={() => onCancel(appointment.id)}
+                >
+                  Cancel
+                </Button>
+              )}
+            </>
+          )}
+          {appointment.status === 'completed' && (
+            <Button asChild size={featured ? 'md' : 'sm'} variant="secondary">
+              <Link to="/health-records">View records</Link>
+            </Button>
+          )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// Icon Components
-function DoctorIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function ClockIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function VideoIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function PhoneIcon({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-    </svg>
+    </Card>
   );
 }
 

@@ -1,20 +1,77 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  ClipboardList,
+  FileHeart,
+  Lightbulb,
+  Phone,
+  Pill,
+  Stethoscope
+} from 'lucide-react';
 import { appointmentAPI, aiAPI } from '../services/api';
 import AppointmentCard from '../components/AppointmentCard';
-import { motion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { 
-  Calendar, Pill, FileText, Activity, 
-  Lightbulb, ArrowRight, Phone
-} from 'lucide-react';
-import { cn } from '../lib/utils';
+import {
+  EmptyState,
+  IconBadge,
+  InlineNotice,
+  PageHeader,
+  PageShell,
+  PageSkeleton,
+  SectionHeader
+} from '../components/ui/PagePrimitives';
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const quickActions = [
+  {
+    title: 'Health Records',
+    description: 'View medical history',
+    icon: FileHeart,
+    link: '/health-records',
+    tone: 'primary'
+  },
+  {
+    title: 'Prescriptions',
+    description: 'Review prescriptions in your records',
+    icon: ClipboardList,
+    link: '/health-records',
+    tone: 'teal'
+  },
+  {
+    title: 'Medicines',
+    description: 'Find local pharmacies',
+    icon: Pill,
+    link: '/medicines',
+    tone: 'warning'
+  },
+  {
+    title: 'AI Symptoms',
+    description: 'Start a health assessment',
+    icon: Activity,
+    link: '/symptom-checker',
+    tone: 'success'
+  }
+];
 
 export default function Dashboard({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [healthTip, setHealthTip] = useState('');
   const [loading, setLoading] = useState(true);
+  const [appointmentsError, setAppointmentsError] = useState(false);
+  const [healthTipError, setHealthTipError] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     fetchData();
@@ -22,207 +79,205 @@ export default function Dashboard({ user }) {
 
   const fetchData = async () => {
     try {
-      const appointmentsRes = await appointmentAPI.getAppointments({ 
+      const appointmentsRes = await appointmentAPI.getAppointments({
         patientId: user.uid,
-        status: 'scheduled' 
+        status: 'scheduled'
       });
-      // Map room_id to roomId for components that might still expect the camelCase version
       const mappedAppointments = appointmentsRes.data.map(apt => ({
         ...apt,
         roomId: apt.room_id || apt.roomId
       }));
       setAppointments(mappedAppointments.slice(0, 3));
+      setAppointmentsError(false);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      // Fallback only if appointments fail
-      setAppointments([
-        {
-          id: '1',
-          doctorName: 'Sharma',
-          date: '2026-03-15',
-          time: '10:00 AM',
-          type: 'video',
-          status: 'scheduled',
-          roomId: 'room-1'
-        }
-      ]);
+      setAppointmentsError(true);
+      setAppointments([]);
     }
 
     try {
       const tipsRes = await aiAPI.getHealthTips();
       setHealthTip(tipsRes.data.dailyTip);
+      setHealthTipError(false);
     } catch (error) {
       console.error('Error fetching health tips:', error);
-      setHealthTip('Drink at least 8 glasses of water daily to maintain optimal hydration.');
+      setHealthTipError(true);
+      setHealthTip('');
     } finally {
       setLoading(false);
     }
   };
 
-  const quickActions = [
-    {
-      title: 'Consult Doctor',
-      description: 'Schedule a video appointment',
-      icon: Calendar,
-      link: '/book-appointment',
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-900/30'
-    },
-    {
-      title: 'AI Symptoms',
-      description: 'Instant health assessment',
-      icon: Activity,
-      link: '/symptom-checker',
-      color: 'text-purple-600 dark:text-purple-400',
-      bg: 'bg-purple-50 dark:bg-purple-900/30'
-    },
-    {
-      title: 'Medicines',
-      description: 'Find local pharmacies',
-      icon: Pill,
-      link: '/medicines',
-      color: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-50 dark:bg-amber-900/30'
-    },
-    {
-      title: 'Health Records',
-      description: 'View medical history',
-      icon: FileText,
-      link: '/health-records',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-50 dark:bg-emerald-900/30'
-    }
-  ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-  };
+  const displayName = user.displayName || user.email?.split('@')[0] || 'Patient';
+  const greeting = getGreeting();
+  const spotlightAppointment = appointments[0];
+  const additionalAppointments = appointments.slice(1);
 
   if (loading) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 rounded-full animate-spin"></div>
-          <p className="text-slate-600 dark:text-slate-300 font-medium">Loading your health dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton cards={4} />;
   }
 
   return (
-    <motion.main
-      className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Welcome Section */}
-      <motion.section variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Welcome back, {user.displayName || user.email?.split('@')[0] || 'Patient'}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-          Manage your healthcare journey from the comfort of your home.
-        </p>
-      </motion.section>
+    <PageShell className="py-8 sm:py-10 lg:py-12">
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="space-y-12 sm:space-y-16"
+      >
+        <Card className="relative overflow-hidden border-slate-200/80 bg-gradient-to-br from-white via-white to-primary-50/70 p-0 dark:from-slate-900 dark:via-slate-900 dark:to-primary-950/25">
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-primary-100/70 blur-3xl dark:bg-primary-900/25" aria-hidden="true" />
+          <div className="absolute -bottom-36 left-1/3 h-64 w-64 rounded-full bg-cyan-100/60 blur-3xl dark:bg-cyan-900/10" aria-hidden="true" />
+          <PageHeader
+            className="!mb-0 p-6 sm:p-8 lg:p-10"
+            icon={Stethoscope}
+            eyebrow="Patient health overview"
+            title={`${greeting}, ${displayName}`}
+            description="Appointments, health records, medicines, and symptom support—organized around your next step."
+            actions={(
+              <>
+                <Button asChild size="lg" icon={Stethoscope} className="w-full sm:w-auto">
+                  <Link to="/book-appointment">Book consultation</Link>
+                </Button>
+                <Button asChild variant="secondary" size="lg" icon={Activity} className="w-full sm:w-auto">
+                  <Link to="/symptom-checker">Check symptoms</Link>
+                </Button>
+              </>
+            )}
+          />
+        </Card>
 
-      {/* Health Tip Banner */}
-      {healthTip && (
-        <motion.section variants={itemVariants} className="mb-10">
-          <div className="bg-gradient-to-r from-primary-600 to-blue-500 rounded-3xl p-6 sm:p-8 text-white shadow-premium relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/3" />
-            <div className="flex items-start gap-4 sm:gap-6 relative z-10">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm border border-white/20">
-                <Lightbulb className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white/80 text-sm font-semibold tracking-wide uppercase mb-1">Daily Health Insight</p>
-                <p className="text-white text-xl sm:text-2xl font-medium leading-relaxed">{healthTip}</p>
-              </div>
-            </div>
+        {(appointmentsError || healthTipError) && (
+          <div className="space-y-3" aria-label="Data status">
+            {appointmentsError && (
+              <InlineNotice icon={AlertCircle} tone="warning" title="Appointments are temporarily unavailable">
+                No appointment details are shown until the live service responds. Refresh the page to try again.
+              </InlineNotice>
+            )}
+            {healthTipError && (
+              <InlineNotice icon={AlertCircle} tone="warning" title="The live daily tip is temporarily unavailable">
+                No daily tip is shown until the live service responds.
+              </InlineNotice>
+            )}
           </div>
-        </motion.section>
-      )}
+        )}
 
-      {/* Quick Actions Grid */}
-      <motion.section variants={itemVariants} className="mb-12">
-        <h2 className="section-title">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {quickActions.map((action) => (
-            <Link key={action.title} to={action.link}>
-              <Card hoverEffect className="h-full flex flex-col group p-6 border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-transform group-hover:scale-110", action.bg, action.color)}>
-                  <action.icon className="w-7 h-7" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{action.title}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">{action.description}</p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </motion.section>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Upcoming Appointments */}
-        <motion.section variants={itemVariants} className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="section-title !mb-0">Upcoming Appointments</h2>
-            <Link
-              to="/book-appointment"
-              className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold text-sm flex items-center gap-1 group bg-primary-50 dark:bg-primary-900/30 px-3 py-1.5 rounded-full border border-primary-100/50 dark:border-primary-800/50"
-            >
-              View all
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          {appointments.length > 0 ? (
-            <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <AppointmentCard key={appointment.id} appointment={appointment} />
-              ))}
-            </div>
-          ) : (
-            <Card className="text-center py-16 flex flex-col items-center justify-center border-dashed">
-              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                <Calendar className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Upcoming Appointments</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm">
-                Get the care you need. Book a video or audio consultation with our certified rural specialists.
-              </p>
-              <Link to="/book-appointment">
-                <Button>Book Appointment</Button>
+        <section aria-labelledby="care-actions-title">
+          <SectionHeader
+            eyebrow="Care shortcuts"
+            title={<span id="care-actions-title">What do you need today?</span>}
+            description="Move directly to the care tools you use most."
+          />
+          <div className="-mx-4 hide-scrollbars flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            {quickActions.map((action) => (
+              <Link
+                key={action.title}
+                to={action.link}
+                className="group min-w-[78vw] max-w-[20rem] snap-start rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 sm:min-w-0 sm:max-w-none"
+              >
+                <Card hoverEffect className="flex min-h-[190px] flex-col p-5">
+                  <IconBadge icon={action.icon} tone={action.tone} size="lg" />
+                  <h3 className="mt-5 text-base font-extrabold tracking-tight text-ink dark:text-white">
+                    {action.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    {action.description}
+                  </p>
+                  <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-bold text-primary-700 dark:text-primary-300">
+                    Open
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
+                  </span>
+                </Card>
               </Link>
-            </Card>
-          )}
-        </motion.section>
+            ))}
+          </div>
+        </section>
 
-        {/* Sidebar / Emergency Contact */}
-        <motion.section variants={itemVariants} className="lg:col-span-1 space-y-6">
-          <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/40 dark:to-slate-900 border-red-100 dark:border-red-900/30 p-8 text-center relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/50 dark:bg-red-900/20 rounded-full blur-3xl" />
-            <div className="w-16 h-16 bg-brand-emergency/10 dark:bg-brand-emergency/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <Phone className="w-8 h-8 text-brand-emergency" />
-            </div>
-            <h3 className="text-xl font-bold text-red-900 dark:text-red-200 mb-2">Emergency Help</h3>
-            <p className="text-red-700/80 dark:text-red-300/80 mb-6 text-sm">
-              Press the button below for immediate medical assistance or ambulance services.
-            </p>
-            <a href="tel:102" className="block w-full">
-              <Button variant="danger" className="w-full h-14 text-lg animate-pulse-slow shadow-lg shadow-red-500/30">
-                Call Emergency 102
+        <section aria-labelledby="appointments-title">
+          <SectionHeader
+            eyebrow="Care schedule"
+            title={<span id="appointments-title">Upcoming appointments</span>}
+            description="Your first available appointment is highlighted, followed by any other scheduled visits."
+            action={(
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/book-appointment">View all</Link>
               </Button>
-            </a>
-          </Card>
-        </motion.section>
-      </div>
-    </motion.main>
+            )}
+          />
+
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
+            <div>
+              {appointments.length > 0 ? (
+                <div className="space-y-7">
+                  <AppointmentCard appointment={spotlightAppointment} featured />
+
+                  {additionalAppointments.length > 0 && (
+                    <div>
+                      <h3 className="mb-4 text-sm font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                        Additional appointments
+                      </h3>
+                      <ul className="space-y-4">
+                        {additionalAppointments.map((appointment) => (
+                          <li key={appointment.id}>
+                            <AppointmentCard appointment={appointment} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Stethoscope}
+                  title="No upcoming appointments"
+                  description="Get the care you need. Book a video or audio consultation with an available doctor."
+                  action={(
+                    <Button asChild icon={Stethoscope}>
+                      <Link to="/book-appointment">Book Appointment</Link>
+                    </Button>
+                  )}
+                />
+              )}
+            </div>
+
+            <aside className="space-y-5" aria-label="Care information">
+              {healthTip && (
+                <Card className="relative overflow-hidden border-cyan-100 bg-gradient-to-br from-cyan-50/80 to-white dark:border-cyan-900/50 dark:from-cyan-950/25 dark:to-slate-900">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-200/30 blur-2xl dark:bg-cyan-700/10" aria-hidden="true" />
+                  <div className="relative flex items-start gap-4">
+                    <IconBadge icon={Lightbulb} tone="teal" />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-extrabold uppercase tracking-[0.12em] text-cyan-800 dark:text-cyan-300">
+                        Daily health tip
+                      </h3>
+                      <p className="mt-2 text-[15px] font-medium leading-7 text-slate-700 dark:text-slate-200">
+                        {healthTip}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              <Card className="border-red-100 bg-red-50/55 dark:border-red-900/50 dark:bg-red-950/20">
+                <div className="flex items-start gap-4">
+                  <IconBadge icon={Phone} tone="danger" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-extrabold text-red-950 dark:text-red-100">
+                      Emergency help
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-red-800/80 dark:text-red-200/75">
+                      Press the button below for immediate medical assistance or ambulance services.
+                    </p>
+                  </div>
+                </div>
+                <Button asChild variant="danger" icon={Phone} className="mt-5 w-full">
+                  <a href="tel:102">Call Emergency 102</a>
+                </Button>
+              </Card>
+            </aside>
+          </div>
+        </section>
+      </motion.div>
+    </PageShell>
   );
 }

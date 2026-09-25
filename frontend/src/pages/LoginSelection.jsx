@@ -1,121 +1,143 @@
-import { motion } from 'framer-motion';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { User, Stethoscope, ArrowRight } from 'lucide-react';
+import AuthLayout from '../components/AuthLayout';
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardList,
+  FileHeart,
+  HeartHandshake,
+  Stethoscope,
+  UserRound,
+  Video
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function LoginSelection() {
   const navigate = useNavigate();
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-  };
-
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-brand-background dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-100/50 dark:bg-primary-950/30 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/3" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100/50 dark:bg-blue-950/30 rounded-full blur-[80px] -z-10 -translate-x-1/3 translate-y-1/3" />
-
-      <motion.div
-        className="max-w-3xl w-full text-center mb-12"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <span className="inline-block px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 mb-4 shadow-sm">
-          Welcome to Rural TeleHealth
-        </span>
-        <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">Select your portal</h1>
-        <p className="text-slate-600 dark:text-slate-400 text-lg max-w-lg mx-auto">
-          Choose how you want to access the platform. Patients can book consultations, while doctors manage their schedules.
-        </p>
-      </motion.div>
-
-      <motion.div
-        className="grid md:grid-cols-2 gap-6 w-full max-w-4xl"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div variants={itemVariants}>
-          <Card
-            hoverEffect
-            className="h-full cursor-pointer flex flex-col items-center text-center p-10 group border-2 border-transparent hover:border-primary-200 dark:hover:border-primary-800 transition-all duration-300"
-            onClick={() => navigate('/login/patient')}
-          >
-            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-all duration-300">
-              <User size={36} />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Patient Portal</h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-4 max-w-xs text-balance">
-              Book consultations, check symptoms, and manage your health records securely.
-            </p>
-            <div className="flex flex-col gap-3 w-full mt-auto">
-              <Button className="w-full group-hover:bg-primary-700" onClick={(e) => {
+    <AuthLayout
+      audience="general"
+      eyebrow="Welcome to SwasthyaConnect"
+      title="Choose your care portal"
+      description="Select patient or doctor access to continue to the workspace designed for your role."
+    >
+      <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
+        <Card
+          hoverEffect
+          className="group flex h-full cursor-pointer flex-col border-primary-100/90 bg-gradient-to-b from-primary-50/70 to-white p-5 text-left transition-[border-color,box-shadow] duration-200 hover:border-primary-200 sm:p-6 dark:border-primary-900/50 dark:from-primary-900/20 dark:to-slate-900"
+          onClick={() => navigate('/login/patient')}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary-100 bg-white text-primary-700 shadow-card transition-transform duration-200 group-hover:scale-[1.03] dark:border-primary-800/70 dark:bg-primary-900/45 dark:text-primary-300">
+              <UserRound className="h-7 w-7" strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <span className="rounded-full border border-primary-100 bg-white/80 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.15em] text-primary-700 dark:border-primary-800/70 dark:bg-primary-900/40 dark:text-primary-300">
+              For patients
+            </span>
+          </div>
+          <h2 className="mt-6 text-xl font-extrabold tracking-[-0.03em] text-ink dark:text-white">Patient portal</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            Book consultations, review health records, and return to your care space.
+          </p>
+          <ul className="mt-5 space-y-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <li className="flex items-center gap-2.5">
+              <CalendarDays className="h-4 w-4 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+              Appointment booking
+            </li>
+            <li className="flex items-center gap-2.5">
+              <FileHeart className="h-4 w-4 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+              Health records
+            </li>
+            <li className="flex items-center gap-2.5">
+              <Video className="h-4 w-4 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+              Consultation access
+            </li>
+          </ul>
+          <div className="mt-auto grid gap-3 pt-7">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={(e) => {
                 e.stopPropagation();
                 navigate('/signup/patient');
-              }}>
-                Create Patient Account <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/login/patient');
-                }}
-              >
-                Login as Patient
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
+              }}
+            >
+              Create patient account
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/login/patient');
+              }}
+            >
+              Sign in as patient
+            </Button>
+          </div>
+        </Card>
 
-        <motion.div variants={itemVariants}>
-          <Card
-            hoverEffect
-            className="h-full cursor-pointer flex flex-col items-center text-center p-10 group border-2 border-transparent hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800"
-            onClick={() => navigate('/login/doctor')}
-          >
-            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-all duration-300">
-              <Stethoscope size={36} />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Doctor Portal</h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-4 max-w-xs text-balance">
-              Manage appointments, view patient records, and conduct video consultations.
-            </p>
-            <div className="flex flex-col gap-3 w-full mt-auto">
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/signup/doctor');
-                }}
-              >
-                Create Doctor Account <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/login/doctor');
-                }}
-              >
-                Login as Doctor
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
-      </motion.div>
-    </div>
+        <Card
+          hoverEffect
+          className="group flex h-full cursor-pointer flex-col border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5 text-left transition-[border-color,box-shadow] duration-200 hover:border-slate-300 sm:p-6 dark:border-white/10 dark:from-slate-800/50 dark:to-slate-900"
+          onClick={() => navigate('/login/doctor')}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-card transition-transform duration-200 group-hover:scale-[1.03] dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">
+              <Stethoscope className="h-7 w-7" strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.15em] text-slate-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">
+              For doctors
+            </span>
+          </div>
+          <h2 className="mt-6 text-xl font-extrabold tracking-[-0.03em] text-ink dark:text-white">Doctor portal</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            Review appointments, access patient records, and continue to consultations.
+          </p>
+          <ul className="mt-5 space-y-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300">
+            <li className="flex items-center gap-2.5">
+              <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+              Appointment schedule
+            </li>
+            <li className="flex items-center gap-2.5">
+              <ClipboardList className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+              Patient records
+            </li>
+            <li className="flex items-center gap-2.5">
+              <HeartHandshake className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+              Consultation workspace
+            </li>
+          </ul>
+          <div className="mt-auto grid gap-3 pt-7">
+            <Button
+              type="button"
+              className="w-full bg-ink-950 hover:bg-ink-900 focus-visible:ring-ink-700 dark:bg-slate-100 dark:text-ink-950 dark:hover:bg-white dark:focus-visible:ring-slate-300"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/signup/doctor');
+              }}
+            >
+              Create doctor account
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/login/doctor');
+              }}
+            >
+              Sign in as doctor
+            </Button>
+          </div>
+        </Card>
+      </div>
+    </AuthLayout>
   );
 }

@@ -11,13 +11,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['icons/icon-192x192.png', 'icons/icon-512x512.png'],
       manifest: {
-        name: 'Rural TeleHealth Access System',
-        short_name: 'TeleHealth',
-        description: 'Remote healthcare access for rural communities',
-        theme_color: '#0d9488',
-        background_color: '#f8fafc',
+        name: 'SwasthyaConnect',
+        short_name: 'SwasthyaConnect',
+        description: 'A telehealth workspace for appointments, records, and care information.',
+        theme_color: '#1268a9',
+        background_color: '#f5f9fc',
         display: 'standalone',
         scope: '/',
         start_url: '/',
@@ -25,12 +25,14 @@ export default defineConfig({
           {
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: '/icons/icon-512x512.png',

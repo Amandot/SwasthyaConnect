@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Jitsi room names must be alphanumeric, hyphen, or underscore only
 function sanitizeRoomName(id) {
-  if (!id || typeof id !== 'string') return 'room-1';
-  return id.replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'room-1';
+  if (!id || typeof id !== 'string') return null;
+  return id.replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || null;
 }
 
 function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
@@ -23,7 +23,12 @@ function VideoCall({ roomId, userName, onLeave, userRole = 'patient' }) {
   }, []);
 
   useEffect(() => {
+    setError(null);
     const safeRoomId = sanitizeRoomName(roomId);
+    if (!safeRoomId) {
+      setError('This consultation link is missing a room. Return to the dashboard and choose an available appointment.');
+      return undefined;
+    }
     // Use simple room name without prefix to avoid lobby restrictions
     const roomName = safeRoomId;
 

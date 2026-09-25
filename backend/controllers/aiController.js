@@ -4,8 +4,73 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const configuredGeminiModel = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
+const configuredFallbackModels = process.env.GEMINI_FALLBACK_MODELS
+  ? process.env.GEMINI_FALLBACK_MODELS.split(",")
+  : ["gemini-3-flash-preview", "gemini-3.1-flash-lite"];
+const GEMINI_MODELS = [...new Set(
+  [configuredGeminiModel, ...configuredFallbackModels]
+    .map((model) => model.trim())
+    .filter(Boolean)
+)];
+const GEMINI_REQUEST_TIMEOUT = Number(process.env.GEMINI_REQUEST_TIMEOUT_MS) || 12000;
+
+function getGeminiEndpoint(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+}
+
+function isAuthenticationError(error) {
+  const status = error.response?.status;
+  return status === 401 || status === 403;
+}
+
+async function requestGemini(model, prompt) {
+  const response = await axios.post(
+    `${getGeminiEndpoint(model)}?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    {
+      contents: [{ parts: [{ text: prompt }] }]
+    },
+    { timeout: GEMINI_REQUEST_TIMEOUT }
+  );
+
+  const rawText = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  if (!rawText) {
+    const error = new Error("Gemini returned an empty response");
+    error.response = { status: 502 };
+    throw error;
+  }
+
+  return rawText;
+}
+
+async function generateWithFallback(prompt) {
+  let lastError;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      return { model, rawText: await requestGemini(model, prompt) };
+    } catch (error) {
+      lastError = error;
+      if (isAuthenticationError(error)) break;
+    }
+  }
+
+  throw lastError;
+}
+
+function getUpstreamErrorStatus(error) {
+  const status = Number(error.response?.status);
+  if (!status || status === 408 || status === 429 || status >= 500) return 503;
+  return 502;
+}
+
+function parseGeminiJson(rawText) {
+  const cleaned = rawText.replace(/```json|```/gi, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  const jsonText = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+  return JSON.parse(jsonText);
+}
 
 // AI Symptom Checker
 export const checkSymptoms = async (req, res) => {
@@ -17,11 +82,7 @@ export const checkSymptoms = async (req, res) => {
     }
 
     if (!GEMINI_API_KEY) {
-      return res.json({
-        symptoms,
-        analysis: getDemoAnalysis(symptoms),
-        disclaimer: "Demo response. Add GEMINI_API_KEY for real AI analysis."
-      });
+      return res.status(503).json({ error: "The AI service is not configured." });
     }
 
     // ✅ Prompt mein strict JSON format maanga
@@ -41,28 +102,16 @@ JSON format:
 Patient symptoms: ${symptoms}
 `;
 
-    const response = await axios.post(
-      `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{ parts: [{ text: prompt }] }]
-      },
-      { headers: { "Content-Type": "application/json" } }
-    );
+    const { rawText } = await generateWithFallback(prompt);
 
-    const rawText =
-      response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // ✅ JSON parse karo — backticks/markdown clean karke
     let analysis;
     try {
-      const cleaned = rawText.replace(/```json|```/g, "").trim();
-      analysis = JSON.parse(cleaned);
+      analysis = parseGeminiJson(rawText);
     } catch {
-      // Parse fail hua toh raw text wapas bhejo
       return res.json({
         symptoms,
         analysis: { rawText },
-        disclaimer: "Could not parse structured response."
+        disclaimer: "The assistant returned an unstructured response. Please try again."
       });
     }
 
@@ -74,9 +123,8 @@ Patient symptoms: ${symptoms}
 
   } catch (error) {
     console.error("Gemini Error:", error?.response?.data || error.message);
-    return res.status(500).json({
-      error: "Failed to analyze symptoms",
-      details: error?.response?.data || error.message
+    return res.status(getUpstreamErrorStatus(error)).json({
+      error: "The AI service is temporarily unavailable. Please try again."
     });
   }
 };
@@ -115,9 +163,7 @@ export const voiceChat = async (req, res) => {
     }
 
     if (!GEMINI_API_KEY) {
-      return res.json({
-        reply: "This is a demo response. Please configure the GEMINI_API_KEY for real AI voice chat."
-      });
+      return res.status(503).json({ error: "The AI service is not configured." });
     }
 
     const prompt = `
@@ -129,23 +175,14 @@ IMPORTANT: Reply in the exact same language as the user's message.
 User says: "${message}"
 `;
 
-    const response = await axios.post(
-      `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{ parts: [{ text: prompt }] }]
-      },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    const reply = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't understand that.";
+    const { rawText: reply } = await generateWithFallback(prompt);
 
     return res.json({ reply });
 
   } catch (error) {
     console.error("Gemini Voice Chat Error:", error?.response?.data || error.message);
-    return res.status(500).json({
-      error: "Failed to process voice chat",
-      details: error?.response?.data || error.message
+    return res.status(getUpstreamErrorStatus(error)).json({
+      error: "The AI service is temporarily unavailable. Please try again."
     });
   }
 };
