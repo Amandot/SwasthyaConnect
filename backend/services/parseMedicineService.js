@@ -5,9 +5,9 @@ const OPEN_API_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head
 export const AVAILABILITY_VALUES = Object.freeze(['in-stock', 'out-of-stock', 'not-serviceable', 'unknown']);
 
 export const MEDICINE_PROVIDERS = Object.freeze([
-  Object.freeze({ name: 'PharmEasy', scraperId: '60e3a396-2cf6-45cf-9d04-9f865dcbf334' }),
-  Object.freeze({ name: 'Apollo', scraperId: 'b3e3992c-e113-4b1d-8826-f8280149ac28' }),
-  Object.freeze({ name: '1mg', scraperId: '147c82cf-4ca5-4ffc-9c2f-cf6c935f30d7' })
+  Object.freeze({ name: 'PharmEasy', slug: 'pharmeasy-in-api', scraperId: 'e7c250a1-5824-4027-9f84-c63d92aa5889', apiKeyEnv: 'PARSE_API_KEY_PHARMEASY', endpointNames: ['search_medicines'] }),
+  Object.freeze({ name: 'Apollo Pharmacy', slug: 'apollopharmacy-in-api', scraperId: '1008a848-ec78-4d94-98ee-7458bbe7a770', apiKeyEnv: 'PARSE_API_KEY_APOLLO', endpointNames: ['search_medicines'] }),
+  Object.freeze({ name: '1mg', slug: '1mg-com-api', scraperId: 'f703cd2f-7d9c-47bc-8106-6d9631d9b223', apiKeyEnv: 'PARSE_API_KEY_1MG', endpointNames: ['search_medicines_by_location', 'search_medicines'] })
 ]);
 
 const ERROR_DEFINITIONS = Object.freeze({
@@ -22,6 +22,7 @@ const ERROR_DEFINITIONS = Object.freeze({
   openapi_invalid_response: ['invalid_response', 'Provider returned an invalid schema document.'],
   invalid_response: ['invalid_response', 'Provider returned an unsupported search response.'],
   contract_error: ['contract_error', 'Provider search inputs could not be resolved confidently.'],
+  not_configured: ['not_configured', 'Provider API key is not configured.'],
   internal_error: ['internal_error', 'Provider search failed.']
 });
 
@@ -52,8 +53,15 @@ function getRuntimeConfig() {
   };
 }
 
+function getProviderApiKey(provider) {
+  const providerKey = typeof process.env[provider.apiKeyEnv] === 'string'
+    ? process.env[provider.apiKeyEnv].trim()
+    : '';
+  return providerKey || process.env.PARSE_API_KEY?.trim() || null;
+}
+
 export function isParseMedicineSearchConfigured() {
-  return typeof process.env.PARSE_API_KEY === 'string' && process.env.PARSE_API_KEY.trim().length > 0;
+  return MEDICINE_PROVIDERS.some((provider) => Boolean(getProviderApiKey(provider)));
 }
 
 export function clearOpenApiCache() {
@@ -715,13 +723,13 @@ function findMoney(entries, aliases, excludedAncestors = new Set()) {
 
 function safeUrl(value) {
   const text = safeText(value, 2048);
-  if (!text || /^(?:javascript|data|vbscript):/i.test(text)) return null;
+  if (!text || !/^(?:https?:)?\/\//i.test(text)) return null;
   try {
     const candidate = text.startsWith('//') ? `https:${text}` : text;
-    const parsed = new URL(candidate, 'https://provider.invalid');
+    const parsed = new URL(candidate);
     if (!['http:', 'https:'].includes(parsed.protocol)) return null;
     if (parsed.username || parsed.password) return null;
-    return text;
+    return parsed.href;
   } catch {
     return null;
   }
@@ -776,7 +784,9 @@ function availabilityEntry(entry) {
     'availability', 'available', 'isavailable', 'instock', 'isinstock', 'outofstock',
     'isoutofstock', 'notserviceable', 'unserviceable', 'isserviceable', 'serviceable',
     'stock', 'stockcount', 'stockquantity', 'inventory', 'inventorycount', 'availablecount',
-    'availabilitystatus', 'stockstatus', 'serviceability', 'deliverystatus', 'fulfillmentstatus'
+    'availabilitystatus', 'stockstatus', 'serviceability', 'deliverystatus', 'fulfillmentstatus',
+    'locationavailability', 'localavailability', 'pinavailability', 'pincodeavailability',
+    'postalcodeavailability', 'zipcodeavailability', 'nearbyavailability', 'localstock', 'nearbystock'
   ]);
   if (direct.has(entry.key)) return true;
   if (entry.key === 'status' || entry.key === 'code') {
@@ -853,7 +863,7 @@ function availabilityHasScopedContext(entries, source) {
   });
 }
 
-function findAvailability(entries) {
+function findAvailability(entries, locationInputProvided = false) {
   const candidates = entries
     .filter(availabilityEntry)
     .map((entry) => ({
@@ -868,7 +878,9 @@ function findAvailability(entries) {
     availability: selected?.availability || 'unknown',
     availabilitySource: selected?.source || null,
     locationSpecific: selected
-      ? availabilityIsLocationSpecific(selected.source) || availabilityHasScopedContext(entries, selected.source)
+      ? availabilityIsLocationSpecific(selected.source)
+        || availabilityHasScopedContext(entries, selected.source)
+        || (locationInputProvided && selected.availability !== 'unknown')
       : false
   };
 }
@@ -892,7 +904,7 @@ function findDeliveryEstimate(entries) {
   );
 }
 
-function normalizeCandidate(provider, requestedLocation, candidate) {
+function normalizeCandidate(provider, requestedLocation, candidate, locationInputProvided = false) {
   const entries = candidate.stringName
     ? [scalarEntry([], candidate.stringName)]
     : entriesForObject(candidate.value);
@@ -905,8 +917,8 @@ function normalizeCandidate(provider, requestedLocation, candidate) {
 
   const manufacturer = findText(
     entries,
-    new Set(['manufacturer', 'manufacturername', 'manufacturerid', 'marketedby', 'company', 'companyname', 'brand', 'brandname', 'mfr']),
-    new Set(['manufacturer', 'company', 'brand', 'mfr'])
+    new Set(['manufacturer', 'manufacturername', 'marketedby', 'marketedbyname', 'company', 'companyname']),
+    new Set(['manufacturer', 'company'])
   );
   const priceAliases = new Set(['price', 'sellingprice', 'saleprice', 'offerprice', 'discountedprice', 'finalprice', 'currentprice', 'dealprice']);
   const mrpAliases = new Set(['mrp', 'markedprice', 'listprice', 'maximumretailprice', 'marketprice', 'regularprice']);
@@ -921,7 +933,7 @@ function normalizeCandidate(provider, requestedLocation, candidate) {
     new Set(),
     new Set(['image'])
   );
-  const availability = findAvailability(entries);
+  const availability = findAvailability(entries, locationInputProvided);
 
   return {
     provider,
@@ -986,6 +998,7 @@ function collectCandidates(value, state, seen, inPrimaryCollection = false, dept
 function inspectMedicineResponse(payload, options = {}) {
   const provider = String(options.provider || '');
   const requestedLocation = options.location == null ? null : safeText(options.location, 100);
+  const locationInputProvided = options.locationInputProvided === true;
   const limit = boundedInteger(options.limit, 20, 1, 50);
   const state = { candidates: [], foundCollection: false, namedCandidates: 0 };
   collectCandidates(payload, state, new Set(), Array.isArray(payload));
@@ -993,7 +1006,7 @@ function inspectMedicineResponse(payload, options = {}) {
   const items = [];
 
   for (const candidate of state.candidates) {
-    const normalized = normalizeCandidate(provider, requestedLocation, candidate);
+    const normalized = normalizeCandidate(provider, requestedLocation, candidate, locationInputProvided);
     if (!normalized) continue;
     state.namedCandidates += 1;
     const fingerprint = JSON.stringify([
@@ -1027,11 +1040,41 @@ export function normalizeMedicineResponse(payload, options = {}) {
 }
 
 async function executeProvider(provider, medicine, location, apiKey, config) {
+  if (!apiKey) {
+    return {
+      provider: provider.name,
+      status: 'error',
+      count: 0,
+      items: [],
+      locationIncluded: false,
+      error: { code: 'not_configured', message: ERROR_DEFINITIONS.not_configured[1] }
+    };
+  }
+
   try {
     const document = await fetchProviderOpenApi(provider, apiKey, config);
-    const operationEntry = findSearchMedicinesOperation(document, ENDPOINT_NAME);
-    const endpointRequest = buildSearchEndpointRequest(document, operationEntry, medicine, location);
-    const baseUrl = `${PARSE_BASE_URL}/scraper/${encodeURIComponent(provider.scraperId)}/${encodeURIComponent(ENDPOINT_NAME)}`;
+    const endpointNames = Array.isArray(provider.endpointNames) && provider.endpointNames.length > 0
+      ? provider.endpointNames
+      : [ENDPOINT_NAME];
+    let endpointName = ENDPOINT_NAME;
+    let endpointRequest = null;
+    let lastError = null;
+
+    for (const candidateEndpointName of endpointNames) {
+      try {
+        const operationEntry = findSearchMedicinesOperation(document, candidateEndpointName);
+        const candidateRequest = buildSearchEndpointRequest(document, operationEntry, medicine, location);
+        endpointName = candidateEndpointName;
+        endpointRequest = candidateRequest;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!endpointRequest) throw lastError || new ProviderFailure('contract_error');
+
+    const baseUrl = `${PARSE_BASE_URL}/scraper/${encodeURIComponent(provider.scraperId)}/${encodeURIComponent(endpointName)}`;
     let url = baseUrl;
     const options = {
       method: endpointRequest.method.toUpperCase(),
@@ -1056,6 +1099,7 @@ async function executeProvider(provider, medicine, location, apiKey, config) {
     const inspected = inspectMedicineResponse(payload, {
       provider: provider.name,
       location,
+      locationInputProvided: Boolean(endpointRequest.locationInput),
       limit: config.maxResultsPerProvider
     });
 
@@ -1085,8 +1129,8 @@ async function executeProvider(provider, medicine, location, apiKey, config) {
 }
 
 export async function searchMedicinesNearby(medicine, location) {
-  const apiKey = process.env.PARSE_API_KEY?.trim();
-  if (!apiKey) {
+  const configuredProviders = MEDICINE_PROVIDERS.filter((provider) => getProviderApiKey(provider));
+  if (configuredProviders.length === 0) {
     const error = new Error('Medicine search is temporarily unavailable.');
     error.status = 503;
     throw error;
@@ -1094,7 +1138,7 @@ export async function searchMedicinesNearby(medicine, location) {
 
   const config = getRuntimeConfig();
   const providerResults = await Promise.all(
-    MEDICINE_PROVIDERS.map((provider) => executeProvider(provider, medicine, location, apiKey, config))
+    MEDICINE_PROVIDERS.map((provider) => executeProvider(provider, medicine, location, getProviderApiKey(provider), config))
   );
   const results = providerResults.flatMap((providerResult) => providerResult.items);
   const providerStatuses = Object.fromEntries(providerResults.map((result) => [result.provider, result.status]));

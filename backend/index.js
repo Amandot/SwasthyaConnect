@@ -64,10 +64,13 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: err.message 
-  });
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  const message = status === 401
+    ? 'Authentication required'
+    : status === 403
+      ? 'Not authorized'
+      : 'Internal server error';
+  return res.status(status).json({ error: message });
 });
 
 // 404 handler

@@ -34,6 +34,14 @@ export async function searchNearbyMedicines(req, res) {
 
   try {
     const response = await searchMedicinesNearby(medicine, pin);
+    const providers = Array.isArray(response.providers) ? response.providers : [];
+    const allProvidersFailed = providers.length > 0 && providers.every((provider) => provider.status === 'error');
+    const allProvidersUnavailable = providers.every((provider) => (
+      ['unauthorized', 'payment_required'].includes(provider.error?.code)
+    ));
+    if (allProvidersFailed && allProvidersUnavailable) {
+      return res.status(503).json({ error: 'Medicine search is temporarily unavailable.' });
+    }
     return res.status(200).json(response);
   } catch {
     return res.status(503).json({

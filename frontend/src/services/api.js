@@ -84,6 +84,7 @@ export const recordAPI = {
 export const medicineAPI = {
   getMedicines: (params) => api.get('/medicines', { params }),
   searchMedicines: (query) => api.get('/medicines/search', { params: { query } }),
+  searchNearbyMedicines: (data) => api.post('/medicines/search', data, { timeout: 30000 }),
   getPharmacies: () => api.get('/medicines/pharmacies'),
   getMedicineById: (id) => api.get(`/medicines/${id}`),
   addMedicine: (data) => api.post('/medicines', data),
