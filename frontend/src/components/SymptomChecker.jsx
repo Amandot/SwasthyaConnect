@@ -43,7 +43,18 @@ export default function SymptomCheckerComponent() {
         const response = await aiAPI.checkSymptoms(symptoms);
         // ✅ analysis ko directly destructure karke store karo
         const { analysis, disclaimer, symptoms: sym } = response.data;
-        setResult({ analysis, disclaimer, symptoms: sym });
+        
+        const newResult = { analysis, disclaimer, symptoms: sym };
+        setResult(newResult);
+
+        // Save to history in localStorage
+        const history = JSON.parse(localStorage.getItem('aiSymptomHistory') || '[]');
+        history.unshift({
+          ...newResult,
+          date: new Date().toISOString()
+        });
+        localStorage.setItem('aiSymptomHistory', JSON.stringify(history.slice(0, 20))); // Keep last 20
+
       } catch (err) {
         console.error('API Error:', err);
         setResult({

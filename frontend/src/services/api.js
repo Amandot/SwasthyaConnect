@@ -93,6 +93,7 @@ export const medicineAPI = {
 // AI API calls
 export const aiAPI = {
   checkSymptoms: (symptoms) => api.post('/symptom-check', { symptoms }),
+  voiceChat: (message) => api.post('/voice-chat', { message }),
   getHealthTips: () => api.get('/health-tips')
 };
 

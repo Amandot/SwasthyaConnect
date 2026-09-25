@@ -104,3 +104,48 @@ export const getHealthTips = (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Voice Conversational Chat
+export const voiceChat = async (req, res) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || message.trim() === "") {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    if (!GEMINI_API_KEY) {
+      return res.json({
+        reply: "This is a demo response. Please configure the GEMINI_API_KEY for real AI voice chat."
+      });
+    }
+
+    const prompt = `
+You are a friendly, empathetic medical AI assistant helping a patient.
+The user is talking to you via a voice interface.
+Keep your response conversational, concise (2-3 short sentences max), and easy to listen to.
+IMPORTANT: Reply in the exact same language as the user's message.
+
+User says: "${message}"
+`;
+
+    const response = await axios.post(
+      `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    const reply = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't understand that.";
+
+    return res.json({ reply });
+
+  } catch (error) {
+    console.error("Gemini Voice Chat Error:", error?.response?.data || error.message);
+    return res.status(500).json({
+      error: "Failed to process voice chat",
+      details: error?.response?.data || error.message
+    });
+  }
+};

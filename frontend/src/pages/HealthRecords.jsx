@@ -14,15 +14,23 @@ export default function HealthRecords({ user }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [aiHistory, setAiHistory] = useState([]);
+  const [selectedAiRecord, setSelectedAiRecord] = useState(null);
 
   useEffect(() => {
     fetchRecords();
+    const storedAiHistory = JSON.parse(localStorage.getItem('aiSymptomHistory') || '[]');
+    setAiHistory(storedAiHistory);
   }, []);
 
   const fetchRecords = async () => {
     try {
       const response = await recordAPI.getRecords({ patientId: user?.uid });
-      setRecords(response.data);
+      const mappedRecords = response.data.map(r => ({
+        ...r,
+        doctorName: r.doctor?.name || r.doctorName || 'Unknown Doctor'
+      }));
+      setRecords(mappedRecords);
     } catch (error) {
       setRecords([
         {
@@ -124,7 +132,7 @@ export default function HealthRecords({ user }) {
       </div>
 
       <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-        {['all', 'prescriptions', 'checkups'].map((tab) => (
+        {['all', 'prescriptions', 'checkups', 'ai_history'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -138,6 +146,7 @@ export default function HealthRecords({ user }) {
             {tab === 'all' && 'All Records'}
             {tab === 'prescriptions' && 'Prescriptions'}
             {tab === 'checkups' && 'Routine Checkups'}
+            {tab === 'ai_history' && 'AI History'}
           </button>
         ))}
       </div>
@@ -146,7 +155,7 @@ export default function HealthRecords({ user }) {
         {/* Left Column - List */}
         <div className="lg:col-span-1 space-y-4">
           <AnimatePresence mode="popLayout">
-            {filteredRecords.map((record) => (
+            {activeTab !== 'ai_history' ? filteredRecords.map((record) => (
               <motion.div 
                 key={record.id}
                 layout
@@ -195,6 +204,50 @@ export default function HealthRecords({ user }) {
                   </div>
                 </button>
               </motion.div>
+            )) : aiHistory.map((aiRecord, idx) => (
+              <motion.div 
+                key={idx}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <button
+                  onClick={() => setSelectedAiRecord(aiRecord)}
+                  className={cn(
+                    "w-full text-left p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group",
+                    selectedAiRecord?.date === aiRecord.date
+                      ? "bg-primary-600 border-primary-600 shadow-premium"
+                      : "bg-white border-slate-200 hover:border-primary-200 hover:shadow-soft dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700"
+                  )}
+                >
+                  {selectedAiRecord?.date === aiRecord.date && (
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-[20px] -translate-y-1/2 translate-x-1/2" />
+                  )}
+
+                  <div className="flex flex-col gap-3 relative z-10">
+                    <div className="flex items-start justify-between">
+                      <div className={cn("p-2 rounded-xl", selectedAiRecord?.date === aiRecord.date ? "bg-white/20 text-white" : "bg-primary-50 text-primary-600 dark:bg-primary-950/50 dark:text-primary-400")}>
+                        <Activity size={20} />
+                      </div>
+                      <span className={cn("px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1",
+                        selectedAiRecord?.date === aiRecord.date ? "bg-white/20 text-white" : "bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/40"
+                      )}>
+                        AI Analysis
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className={cn("font-bold text-lg leading-tight mb-1 truncate", selectedAiRecord?.date === aiRecord.date ? "text-white" : "text-slate-900 dark:text-white")}>
+                        Symptoms: {aiRecord.symptoms}
+                      </h3>
+                      <p className={cn("text-xs flex items-center gap-1.5", selectedAiRecord?.date === aiRecord.date ? "text-primary-200" : "text-slate-400 dark:text-slate-500")}>
+                        <Calendar size={12} /> {formatDate(aiRecord.date)}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
             ))}
           </AnimatePresence>
         </div>
@@ -202,7 +255,7 @@ export default function HealthRecords({ user }) {
         {/* Right Column - Details */}
         <div className="lg:col-span-2">
           <AnimatePresence mode="wait">
-            {selectedRecord ? (
+            {activeTab !== 'ai_history' && selectedRecord ? (
               <motion.div
                 key={selectedRecord.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -314,6 +367,72 @@ export default function HealthRecords({ user }) {
                         <div className="bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-2xl p-6 relative">
                           <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-400 dark:bg-purple-500 rounded-l-2xl" />
                           <p className="text-slate-700 dark:text-slate-300 leading-relaxed italic">"{selectedRecord.notes}"</p>
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            ) : activeTab === 'ai_history' && selectedAiRecord ? (
+              <motion.div
+                key={selectedAiRecord.date}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="p-0 overflow-hidden border-slate-200/60 dark:border-slate-700/60 shadow-soft relative">
+                  {/* Decorative Background */}
+                  <div className="absolute top-0 right-0 w-full h-48 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-slate-800 -z-10" />
+
+                  {/* Header */}
+                  <div className="p-8 border-b border-slate-100 dark:border-slate-700/60">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 text-xs font-semibold mb-4 border border-purple-100 dark:border-purple-900/40">
+                      <Activity className="w-4 h-4" /> AI Symptom Checker Result
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
+                      Reported: {selectedAiRecord.symptoms}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-600 dark:text-slate-400">
+                      <span className="flex items-center gap-1.5"><Calendar size={16} className="text-purple-500" /> {formatDate(selectedAiRecord.date)}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-8 space-y-8">
+                    {/* Possible Conditions */}
+                    {selectedAiRecord.analysis?.possibleConditions && (
+                      <section>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                          <Activity className="text-primary-500 w-5 h-5" /> Possible Conditions
+                        </h3>
+                        <div className="bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <ul className="space-y-2">
+                            {selectedAiRecord.analysis.possibleConditions.map((c, i) => (
+                              <li key={i} className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+                                <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0" />
+                                {c}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Advice */}
+                    {selectedAiRecord.analysis?.advice && (
+                      <section>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                          <FileText className="text-blue-500 w-5 h-5" /> Advice
+                        </h3>
+                        <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 p-5 rounded-2xl">
+                          <ul className="space-y-2">
+                            {selectedAiRecord.analysis.advice.map((c, i) => (
+                              <li key={i} className="flex items-center gap-2 text-blue-800 dark:text-blue-300 text-sm">
+                                <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+                                {c}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </section>
                     )}

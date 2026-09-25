@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth, isDemoFirebase } from '../firebase/firebaseConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Menu, X, LogOut, User,
+  Menu, X, LogOut, User, LayoutDashboard,
   Stethoscope, Calendar, FileText, Pill, AlertCircle, Activity
 } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -43,6 +43,7 @@ export default function Navbar({ user, userRole }) {
 
   const navLinks = [
     { name: 'Overview', path: '/home', icon: Activity, public: true },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['patient'] },
     { name: 'Consult Doctor', path: '/book-appointment', icon: Stethoscope, roles: ['patient'] },
     { name: 'AI Symptoms', path: '/symptom-checker', icon: Activity, roles: ['patient'] },
     { name: 'Health Records', path: '/health-records', icon: FileText, roles: ['patient', 'doctor'] },
