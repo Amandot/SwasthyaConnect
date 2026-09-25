@@ -43,6 +43,25 @@ export default function DoctorLogin({ onLogin }) {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const token = await cred.user.getIdToken();
       localStorage.setItem('authToken', token);
+      
+      // Sync profile with backend (repairs users who failed to create DB row previously)
+      try {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: cred.user.displayName || email.split('@')[0],
+            email,
+            role: 'doctor'
+          })
+        });
+      } catch (backendErr) {
+        console.error('Failed to sync backend profile:', backendErr);
+      }
+      
       localStorage.setItem('userRole', 'doctor');
       onLogin?.();
       navigate('/doctor-dashboard');

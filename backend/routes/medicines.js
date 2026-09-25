@@ -7,8 +7,11 @@ import {
   updateMedicine,
   getPharmacies
 } from '../controllers/medicineController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 // GET /api/medicines - Get all medicines
 router.get('/', getMedicines);

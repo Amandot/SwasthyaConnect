@@ -29,7 +29,7 @@ function AppointmentCard({ appointment, onCancel }) {
   };
 
   const handleJoinCall = () => {
-    navigate(`/consultation/${appointment.roomId}`);
+    navigate(`/consultation/${appointment.room_id || appointment.roomId}`);
   };
 
   return (
@@ -44,7 +44,7 @@ function AppointmentCard({ appointment, onCancel }) {
           {/* Appointment Details */}
           <div>
             <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-              Dr. {appointment.doctorName || 'Doctor'}
+              Dr. {appointment.doctor?.name || appointment.doctorName || 'Doctor'}
             </h3>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1">

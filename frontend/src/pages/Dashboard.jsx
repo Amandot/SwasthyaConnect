@@ -26,13 +26,15 @@ export default function Dashboard({ user }) {
         patientId: user.uid,
         status: 'scheduled' 
       });
-      setAppointments(appointmentsRes.data.slice(0, 3));
-
-      const tipsRes = await aiAPI.getHealthTips();
-      setHealthTip(tipsRes.data.dailyTip);
+      // Map room_id to roomId for components that might still expect the camelCase version
+      const mappedAppointments = appointmentsRes.data.map(apt => ({
+        ...apt,
+        roomId: apt.room_id || apt.roomId
+      }));
+      setAppointments(mappedAppointments.slice(0, 3));
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Use room-1, room-2, room-3 to match DoctorDashboard appointments so both join same Jitsi room
+      console.error('Error fetching appointments:', error);
+      // Fallback only if appointments fail
       setAppointments([
         {
           id: '1',
@@ -44,6 +46,13 @@ export default function Dashboard({ user }) {
           roomId: 'room-1'
         }
       ]);
+    }
+
+    try {
+      const tipsRes = await aiAPI.getHealthTips();
+      setHealthTip(tipsRes.data.dailyTip);
+    } catch (error) {
+      console.error('Error fetching health tips:', error);
       setHealthTip('Drink at least 8 glasses of water daily to maintain optimal hydration.');
     } finally {
       setLoading(false);

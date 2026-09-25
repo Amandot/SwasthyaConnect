@@ -6,8 +6,12 @@ import {
   updateAppointment,
   cancelAppointment
 } from '../controllers/appointmentController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication middleware to all appointment routes
+router.use(authenticate);
 
 // GET /api/appointments - Get all appointments (with optional filters)
 router.get('/', getAppointments);

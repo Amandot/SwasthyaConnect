@@ -6,8 +6,11 @@ import {
   updateRecord,
   getPrescriptions
 } from '../controllers/recordController.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 // GET /api/records - Get all health records (with optional patient filter)
 router.get('/', getRecords);
