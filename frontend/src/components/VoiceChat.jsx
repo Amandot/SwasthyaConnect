@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { aiAPI } from '../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Card } from './ui/Card';
-import { Button } from './ui/Button';
-import { Mic, Square, Volume2, Loader2, AlertCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  Bot,
+  Headphones,
+  Languages,
+  Loader2,
+  Mic,
+  ShieldCheck,
+  Square,
+  UserRound,
+  Volume2
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function VoiceChat() {
@@ -12,18 +22,18 @@ export default function VoiceChat() {
   const [aiResponse, setAiResponse] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [selectedLang, setSelectedLang] = useState('en-US'); // Default English
-  
+  const [selectedLang, setSelectedLang] = useState('en-US');
+
   const recognitionRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
   const silenceTimerRef = useRef(null);
   const langRef = useRef(selectedLang);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     langRef.current = selectedLang;
   }, [selectedLang]);
 
-  // Supported languages
   const languages = [
     { code: 'en-US', label: 'English' },
     { code: 'hi-IN', label: 'Hindi (हिंदी)' },
@@ -35,7 +45,6 @@ export default function VoiceChat() {
   ];
 
   useEffect(() => {
-    // Initialize speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -48,8 +57,7 @@ export default function VoiceChat() {
           currentTranscript += event.results[i][0].transcript;
         }
         setTranscript(currentTranscript);
-        
-        // Auto-submit after 2 seconds of silence
+
         if (silenceTimerRef.current) {
           clearTimeout(silenceTimerRef.current);
         }
@@ -71,7 +79,7 @@ export default function VoiceChat() {
           setIsListening(false);
         }
       };
-      
+
       recognitionRef.current.onend = () => {
         setIsListening(false);
         if (silenceTimerRef.current) {
@@ -97,34 +105,28 @@ export default function VoiceChat() {
 
   const toggleListening = () => {
     if (!recognitionRef.current) return;
-    
-    // Wake up speech synthesis on user interaction to bypass browser restrictions
+
     if (synthRef.current && !isListening) {
-        const wakeUp = new SpeechSynthesisUtterance('');
-        wakeUp.volume = 0;
-        synthRef.current.speak(wakeUp);
+      const wakeUp = new SpeechSynthesisUtterance('');
+      wakeUp.volume = 0;
+      synthRef.current.speak(wakeUp);
     }
-    
+
     setError('');
     setAiResponse('');
-    
+
     if (isListening) {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       recognitionRef.current.stop();
       setIsListening(false);
-      // We don't auto-submit here manually anymore to avoid double submission, 
-      // since the manual stop will trigger onend. But if they manually stop, 
-      // we still want to submit what they said immediately.
-      // Wait, if we submit here, the silence timeout might have already submitted it?
-      // Clearing the timeout above prevents double submission.
       if (transcript.trim()) {
         processVoiceChat(transcript, selectedLang);
       }
     } else {
-      synthRef.current.cancel();
+      synthRef.current?.cancel();
       setTranscript('');
       try {
-        recognitionRef.current.lang = selectedLang; // Set the explicitly selected language
+        recognitionRef.current.lang = selectedLang;
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
@@ -137,27 +139,14 @@ export default function VoiceChat() {
     setIsProcessing(true);
     const langLabel = languages.find(l => l.code === langCode)?.label || 'English';
     try {
-      // Pass the explicit language to the backend so it knows exactly what to reply in
       const response = await aiAPI.voiceChat(message + `\n[Context: Please reply in ${langLabel} language]`);
       const reply = response.data.reply;
       setAiResponse(reply);
       speakText(reply, langCode);
     } catch (err) {
       console.error(err);
-      
-      // Provide a graceful fallback if the AI key is invalid or API fails (like SymptomChecker does)
-      let fallbackReply = "I am currently in demo mode. Based on what you said, please ensure you rest and stay hydrated. Consult a doctor if symptoms persist.";
-      
-      if (langCode === 'hi-IN') {
-        fallbackReply = "मैं अभी डेमो मोड में हूँ। कृपया आराम करें और खूब पानी पिएं। यदि लक्षण बने रहते हैं तो डॉक्टर से सलाह लें।";
-      } else if (langCode === 'bn-IN') {
-        fallbackReply = "আমি এখন ডেমো মোডে আছি। অনুগ্রহ করে বিশ্রাম নিন এবং প্রচুর জল পান করুন।";
-      } else if (langCode === 'ta-IN') {
-        fallbackReply = "நான் தற்போது டெமோ பயன்முறையில் உள்ளேன். ஓய்வெடுக்கவும், நிறைய தண்ணீர் குடிக்கவும்.";
-      }
-      
-      setAiResponse(fallbackReply);
-      speakText(fallbackReply, langCode);
+      setError('The live voice service is unavailable, so no medical response is shown. Please try again later or use the text option.');
+      setAiResponse('');
     } finally {
       setIsProcessing(false);
     }
@@ -165,135 +154,247 @@ export default function VoiceChat() {
 
   const speakText = (text, langCode) => {
     if (!synthRef.current) return;
-    synthRef.current.cancel(); // cancel current
+    synthRef.current.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     if (langCode) {
       utterance.lang = langCode;
-      
-      // Explicitly try to find a matching voice to prevent silent failures
+
       const voices = synthRef.current.getVoices();
       if (voices.length > 0) {
-        // 1. Try exact match (e.g. hi-IN)
         let targetVoice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === langCode.toLowerCase());
-        
-        // 2. Try prefix match (e.g. hi)
+
         if (!targetVoice) {
           const prefix = langCode.split('-')[0].toLowerCase();
           targetVoice = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
         }
-        
+
         if (targetVoice) {
           utterance.voice = targetVoice;
         }
       }
     }
-    
-    utterance.rate = 0.95; // slightly slower for better comprehension
+
+    utterance.rate = 0.95;
     synthRef.current.speak(utterance);
   };
 
+  const statusLabel = isListening ? 'Listening...' : isProcessing ? 'AI is thinking...' : 'Tap to speak';
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Card className="p-8 border-slate-200/60 dark:border-slate-700/60 shadow-premium flex flex-col items-center justify-center min-h-[400px] text-center relative overflow-hidden">
-        
-        {/* Background Animation */}
-        <AnimatePresence>
-          {isListening && (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1.5, opacity: 0.15 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ repeat: Infinity, duration: 1.5, repeatType: 'reverse' }}
-              className="absolute inset-0 bg-primary-500 rounded-full blur-3xl z-0 pointer-events-none"
-            />
-          )}
-        </AnimatePresence>
+    <motion.section
+      className="mx-auto max-w-5xl"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.3, ease: 'easeOut' }}
+    >
+      <Card className="overflow-hidden p-0 shadow-premium">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="flex min-h-[520px] flex-col bg-white dark:bg-slate-900/45">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-slate-700/70">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300">
+                    <Headphones className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-primary-700 dark:text-primary-300">Voice conversation</p>
+                </div>
+                <h2 className="mt-3 text-xl font-extrabold tracking-tight text-ink dark:text-white sm:text-2xl">Talk in a comfortable way</h2>
+                <p className="mt-1.5 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">Describe what you notice, ask a general question, and listen when the response is ready.</p>
+              </div>
+              <span className={cn(
+                'inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold',
+                isProcessing
+                  ? 'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-800/70 dark:bg-primary-900/45 dark:text-primary-300'
+                  : isListening
+                    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/70 dark:bg-red-950/45 dark:text-red-300'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              )}>
+                <span className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  isProcessing ? 'bg-primary-500 motion-safe:animate-pulse' : isListening ? 'bg-red-500 motion-safe:animate-pulse' : 'bg-slate-400'
+                )} aria-hidden="true" />
+                {isProcessing ? 'Responding' : isListening ? 'Live' : 'Ready'}
+              </span>
+            </div>
 
-        <div className="relative z-10 w-full flex flex-col items-center">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Voice Assistant</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm">
-            Select your language, tap the microphone to speak, and tap again to send.
-          </p>
-
-          <div className="mb-8 z-20">
-            <select
-              value={selectedLang}
-              onChange={(e) => setSelectedLang(e.target.value)}
-              disabled={isListening || isProcessing}
-              className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-primary-500 outline-none transition-shadow disabled:opacity-50 cursor-pointer"
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={toggleListening}
-            disabled={isProcessing}
-            className={cn(
-              "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg",
-              isListening 
-                ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/40 animate-pulse" 
-                : "bg-primary-600 hover:bg-primary-700 text-white shadow-primary-600/30",
-              isProcessing && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            {isListening ? <Square className="w-8 h-8" /> : <Mic className="w-10 h-10" />}
-          </button>
-
-          <div className="mt-6 text-sm font-medium text-slate-500 dark:text-slate-400">
-            {isListening ? "Listening..." : isProcessing ? "AI is thinking..." : "Tap to speak"}
-          </div>
-
-          <AnimatePresence mode="wait">
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm w-full border border-red-100 dark:border-red-800 flex items-center gap-2"
-              >
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <span className="text-left">{error}</span>
-              </motion.div>
-            )}
-
-            {(transcript || aiResponse) && !error && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="mt-8 w-full space-y-4"
-              >
-                {transcript && (
-                  <div className="bg-slate-100 dark:bg-slate-800/80 p-4 rounded-2xl rounded-tr-sm text-left max-w-[85%] ml-auto border border-slate-200 dark:border-slate-700">
-                    <p className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed">{transcript}</p>
-                  </div>
-                )}
-                
-                {isProcessing && (
-                  <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 p-4 rounded-2xl rounded-tl-sm w-max border border-primary-100 dark:border-primary-900/40">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
-                  </div>
-                )}
-
-                {aiResponse && (
-                  <div className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-2xl rounded-tl-sm text-left max-w-[90%] border border-primary-100 dark:border-primary-900/40 relative group">
-                    <p className="text-primary-900 dark:text-primary-100 text-sm leading-relaxed">{aiResponse}</p>
-                    <button 
-                      onClick={() => speakText(aiResponse, selectedLang)}
-                      className="absolute -right-2 -top-2 w-8 h-8 bg-white dark:bg-slate-800 rounded-full shadow-md flex items-center justify-center text-primary-600 hover:text-primary-700 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Replay Audio"
+            <div className="flex flex-1 flex-col p-5 sm:p-7">
+              <div className="flex-1 space-y-5">
+                <AnimatePresence mode="wait" initial={false}>
+                  {error ? (
+                    <motion.div
+                      key="voice-error"
+                      role="alert"
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                      transition={reduceMotion ? { duration: 0 } : { duration: 0.2 }}
+                      className="flex items-start gap-4 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-950 dark:border-red-800/70 dark:bg-red-950/30 dark:text-red-100"
                     >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-red-600 shadow-sm dark:bg-slate-900 dark:text-red-300">
+                        <AlertCircle className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h3 className="font-extrabold">We could not continue the voice check</h3>
+                        <p className="mt-1.5 text-sm leading-6 opacity-80">{error}</p>
+                        <p className="mt-2 text-sm leading-6 opacity-80">Check your browser and microphone permissions, then try again, or use the text check in a supported browser.</p>
+                      </div>
+                    </motion.div>
+                  ) : !transcript && !aiResponse && !isProcessing ? (
+                    <motion.div
+                      key="voice-empty"
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex min-h-[285px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/55 px-5 py-10 text-center dark:border-slate-700 dark:bg-slate-950/30"
+                    >
+                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary-100 bg-white text-primary-700 shadow-card dark:border-primary-800/70 dark:bg-slate-900 dark:text-primary-300">
+                        <Bot className="h-7 w-7" aria-hidden="true" />
+                      </span>
+                      <h3 className="mt-5 text-lg font-extrabold text-ink dark:text-white">Start with how you are feeling</h3>
+                      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">The current exchange appears in this panel while it is open. You can stop listening at any time.</p>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="voice-conversation"
+                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-5"
+                    >
+                      {transcript && (
+                        <div className="ml-auto max-w-[88%] sm:max-w-[78%]" aria-label="Your message">
+                          <div className="mb-1.5 flex items-center justify-end gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                            <span>You</span>
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300">
+                              <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                            </span>
+                          </div>
+                          <div className="rounded-2xl rounded-tr-md bg-primary-600 px-4 py-3.5 text-sm leading-6 text-white shadow-[0_14px_30px_-20px_rgba(18,104,177,0.8)] sm:px-5">
+                            {transcript}
+                          </div>
+                        </div>
+                      )}
+
+                      {isProcessing && (
+                        <div className="max-w-[88%] sm:max-w-[78%]" aria-label="AI assistant is thinking">
+                          <div className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                              <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+                            </span>
+                            AI assistant
+                          </div>
+                          <div className="flex w-fit items-center gap-3 rounded-2xl rounded-tl-md border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary-600 motion-reduce:animate-none dark:text-primary-300" aria-hidden="true" />
+                            Thinking...
+                          </div>
+                        </div>
+                      )}
+
+                      {aiResponse && (
+                        <div className="group max-w-[92%] sm:max-w-[86%]" aria-label="AI assistant response">
+                          <div className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300">
+                              <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+                            </span>
+                            AI assistant
+                          </div>
+                          <div className="relative rounded-2xl rounded-tl-md border border-primary-100 bg-primary-50/75 px-4 py-3.5 text-sm leading-6 text-primary-900 shadow-sm dark:border-primary-800/70 dark:bg-primary-900/30 dark:text-primary-50 sm:px-5">
+                            {aiResponse}
+                            <button
+                              type="button"
+                              onClick={() => speakText(aiResponse, selectedLang)}
+                              className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-2.5 py-1.5 text-xs font-bold text-primary-700 transition duration-200 hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-primary-800 dark:bg-slate-900 dark:text-primary-300 dark:hover:bg-primary-900/50 motion-reduce:transition-none sm:absolute sm:-right-3 sm:-top-3 sm:mt-0 sm:h-9 sm:w-9 sm:justify-center sm:px-0 sm:py-0"
+                              title="Replay Audio"
+                              aria-label="Replay AI response"
+                            >
+                              <Volume2 className="h-4 w-4" aria-hidden="true" />
+                              <span className="sm:hidden">Replay audio</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="mt-6 flex items-start gap-3 border-t border-slate-100 pt-5 dark:border-slate-700/70">
+                <ShieldCheck className="mt-0.5 h-[18px] w-[18px] shrink-0 text-slate-500 dark:text-slate-400" aria-hidden="true" />
+                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  <strong className="font-bold text-slate-700 dark:text-slate-200">AI-assisted information only.</strong> Voice responses can be incomplete or incorrect and cannot diagnose a condition or replace professional care.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="border-t border-slate-100 bg-slate-50/75 p-5 dark:border-slate-700/70 dark:bg-slate-950/45 sm:p-7 lg:border-l lg:border-t-0" aria-label="Voice controls">
+            <div className="flex h-full flex-col">
+              <div>
+                <label htmlFor="voice-language" className="flex items-center gap-2 text-sm font-extrabold text-ink dark:text-white">
+                  <Languages className="h-4 w-4 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                  Conversation language
+                </label>
+                <select
+                  id="voice-language"
+                  value={selectedLang}
+                  onChange={(e) => setSelectedLang(e.target.value)}
+                  disabled={isListening || isProcessing}
+                  className="mt-3 min-h-12 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 motion-reduce:transition-none"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">The same language is used for listening and spoken replies.</p>
+              </div>
+
+              <div className="relative flex flex-1 flex-col items-center justify-center py-10">
+                <AnimatePresence>
+                  {isListening && (
+                    <motion.div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute h-48 w-48 rounded-full bg-primary-400/15 blur-xl"
+                      initial={reduceMotion ? { opacity: 0.12, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                      animate={reduceMotion ? { opacity: 0.12, scale: 1 } : { opacity: 0.45, scale: 1.28 }}
+                      exit={{ opacity: 0, scale: 0.85 }}
+                      transition={reduceMotion ? { duration: 0 } : { repeat: Infinity, duration: 1.5, repeatType: 'reverse', ease: 'easeInOut' }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  disabled={isProcessing}
+                  aria-pressed={isListening}
+                  aria-label={isListening ? 'Stop listening and send your message' : 'Start a voice conversation'}
+                  className={cn(
+                    'relative z-10 flex h-32 w-32 items-center justify-center rounded-full border-4 border-white text-white shadow-[0_24px_50px_-24px_rgba(18,104,177,0.85)] transition duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/25 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none sm:h-36 sm:w-36 dark:border-slate-800',
+                    isListening ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30' : 'bg-primary-600 hover:bg-primary-700'
+                  )}
+                >
+                  {isListening ? <Square className="h-9 w-9 fill-current" aria-hidden="true" /> : <Mic className="h-12 w-12" aria-hidden="true" />}
+                </button>
+
+                <div className="relative z-10 mt-6 min-h-12 text-center" role="status" aria-live="polite" aria-atomic="true">
+                  <p className="text-base font-extrabold text-ink dark:text-white">{statusLabel}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {isListening ? 'Pause briefly and your message will send automatically.' : isProcessing ? 'Preparing a response in your selected language.' : 'Tap once to start, then tap again to stop and send.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                <div className="flex items-start gap-3">
+                  <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                  <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Voice input and audio playback use your browser's speech tools. Headphones can make replies easier to hear.</p>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </Card>
-    </div>
+    </motion.section>
   );
 }

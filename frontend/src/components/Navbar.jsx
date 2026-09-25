@@ -1,352 +1,250 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth, isDemoFirebase } from '../firebase/firebaseConfig';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  Menu, X, LogOut, User, LayoutDashboard,
-  Stethoscope, Calendar, FileText, Pill, AlertCircle, Activity
+  Activity,
+  CalendarDays,
+  CircleUserRound,
+  FileHeart,
+  HeartPulse,
+  LogOut,
+  Menu,
+  Pill,
+  ShieldAlert,
+  Stethoscope,
+  X
 } from 'lucide-react';
-import { Button } from './ui/Button';
+import { auth, isDemoFirebase } from '../firebase/firebaseConfig';
 import { cn } from '../lib/utils';
-import logo from './logo/logo.png';
+import { Button } from './ui/Button';
 import ThemeToggle from './ThemeToggle';
+import logo from './logo/logo.png';
+
 export default function Navbar({ user, userRole }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const [hoveredLink, setHoveredLink] = useState(null);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 12);
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname, location.hash]);
 
   const handleLogout = async () => {
     try {
       if (!isDemoFirebase) {
         await signOut(auth);
       }
-      localStorage.removeItem('userRole'); // Clear role cache
+      localStorage.removeItem('userRole');
       localStorage.removeItem('demoUser');
       localStorage.removeItem('authToken');
-      navigate('/home');
       setIsOpen(false);
+      navigate('/home');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
-  const navLinks = [
-    { name: 'Overview', path: '/home', icon: Activity, public: true },
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['patient'] },
-    { name: 'Consult Doctor', path: '/book-appointment', icon: Stethoscope, roles: ['patient'] },
-    { name: 'AI Symptoms', path: '/symptom-checker', icon: Activity, roles: ['patient'] },
-    { name: 'Health Records', path: '/health-records', icon: FileText, roles: ['patient', 'doctor'] },
-    { name: 'Medicines', path: '/medicines', icon: Pill, roles: ['patient'] },
-    { name: 'Appointments', path: '/doctor-dashboard', icon: Calendar, roles: ['doctor'] },
-    { name: 'Emergency', path: '/emergency', icon: AlertCircle, roles: ['patient'] },
+  const publicLinks = [
+    { label: 'Home', path: '/home', icon: HeartPulse },
+    { label: 'Services', path: '/home#services', icon: Stethoscope, anchor: true },
+    { label: 'How it works', path: '/home#how-it-works', icon: Activity, anchor: true }
   ];
 
-  const visibleLinks = navLinks.filter(link =>
-    link.public || (user && link.roles?.includes(userRole))
-  );
+  const patientLinks = [
+    { label: 'Dashboard', path: '/dashboard', icon: CircleUserRound },
+    { label: 'Find a Doctor', path: '/book-appointment', icon: Stethoscope },
+    { label: 'Health Records', path: '/health-records', icon: FileHeart },
+    { label: 'Medicines', path: '/medicines', icon: Pill },
+    { label: 'Symptom Checker', path: '/symptom-checker', icon: Activity }
+  ];
+
+  const doctorLinks = [
+    { label: 'Overview', path: '/doctor-dashboard', icon: CircleUserRound },
+    { label: 'Appointments', path: '/doctor-dashboard#schedule', icon: CalendarDays }
+  ];
+
+  const navLinks = userRole === 'doctor' ? doctorLinks : userRole === 'patient' ? patientLinks : publicLinks;
+  const isActive = (link) => {
+    const [path, hash] = link.path.split('#');
+    return location.pathname === path && (hash ? location.hash === `#${hash}` : !location.hash);
+  };
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out",
-        scrolled
-          ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-[0_4px_30px_rgba(0,0,0,0.03)] py-3"
-          : "bg-transparent py-6"
-      )}
-    >
-      <div className="container mx-auto px-4 md:px-8 max-w-7xl">
-        <div className="flex justify-between items-center">
-
-          {/* Logo */}
+    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-4">
+      <motion.nav
+        initial={reduceMotion ? false : { y: -18, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className={cn(
+          'mx-auto max-w-7xl overflow-hidden rounded-[20px] border bg-white/90 backdrop-blur-xl transition-[border-color,box-shadow,background-color] duration-200 dark:bg-slate-950/90',
+          scrolled
+            ? 'border-slate-200/90 shadow-[0_14px_42px_-28px_rgba(15,35,55,0.5)] dark:border-white/10'
+            : 'border-white/80 shadow-[0_8px_30px_-24px_rgba(15,35,55,0.4)] dark:border-white/[0.07]'
+        )}
+        aria-label="Primary navigation"
+      >
+        <div className="flex min-h-[68px] items-center justify-between gap-5 px-3 sm:px-5">
           <Link
             to={user ? (userRole === 'doctor' ? '/doctor-dashboard' : '/dashboard') : '/home'}
-            className="flex items-center gap-3 group outline-none"
+            className="group flex shrink-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+            aria-label="SwasthyaConnect home"
           >
-            <img src={logo} alt="Arogo Logo" className="h-8 w-8 object-contain" />
-            {/* <motion.div 
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-11 h-11 rounded-2xl bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white shadow-lg shadow-primary-500/20 group-hover:shadow-primary-500/40 transition-all duration-500 ease-out"
-            > */}
-            {/* <HeartPulse className="h-6 w-6" strokeWidth={2.5} /> */}
-            {/* </motion.div> */}
-
-            <span className="text-xl tracking-tight font-bold bg-clip-text text-[#1B3E40] dark:text-white bg-linear-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300">
-              Arogo
-              {/* ArogyaCure */}
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 ring-1 ring-primary-100 transition-transform duration-200 group-hover:scale-[1.03] dark:bg-primary-950/60 dark:ring-primary-800/70">
+              <img src={logo} alt="" className="h-7 w-7 object-contain" />
             </span>
+            <span className="hidden text-[15px] font-extrabold tracking-[-0.03em] text-ink dark:text-white sm:block">SwasthyaConnect</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div
-            className="hidden lg:flex items-center relative rounded-full bg-slate-500/5 dark:bg-slate-800/50 backdrop-blur-md p-1.5 border border-slate-200/50 dark:border-slate-700/50"
-            onMouseLeave={() => setHoveredLink(null)}
-          >
-            {visibleLinks.map((link) => {
-              const isActive = location.pathname.startsWith(link.path);
-              const isHovered = hoveredLink === link.path;
-
-              return (
+          <div className="hidden min-w-0 flex-1 items-center justify-center xl:flex">
+            <div className="flex items-center gap-1 rounded-2xl bg-slate-50 p-1 dark:bg-white/[0.045]">
+              {navLinks.map((link) => (
                 <Link
-                  key={link.name}
+                  key={link.label}
                   to={link.path}
-                  onMouseEnter={() => setHoveredLink(link.path)}
                   className={cn(
-                    "relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 z-10",
-                    isActive || isHovered
-                      ? "text-slate-900 dark:text-white"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    'relative rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors',
+                    isActive(link)
+                      ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/80 dark:bg-white/10 dark:text-primary-200 dark:ring-white/10'
+                      : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   )}
                 >
-                  <span className="relative z-20 mix-blend-multiply dark:mix-blend-normal">{link.name}</span>
-
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-white dark:bg-slate-700 rounded-full shadow-sm border border-slate-200/50 dark:border-slate-600/50 z-0"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-
-                  {isHovered && !isActive && (
-                    <motion.div
-                      layoutId="hoverTab"
-                      className="absolute inset-0 bg-slate-100/80 dark:bg-slate-700/80 rounded-full z-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  )}
+                  {link.label}
                 </Link>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-4">
-
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => navigate('/test/video-call')}
-                className="shadow-sm border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-              >
-                Join Video Call
-              </Button>
-            </motion.div>
-
-            {user ? (
-              <div className="flex items-center gap-3">
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Link to={userRole === 'doctor' ? '/doctor-dashboard' : '/dashboard'}>
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300">
-                      <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                        <User className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
-                      </div>
-                      <span>{userRole === 'doctor' ? 'Dr. Account' : 'Patient'}</span>
-                    </div>
-                  </Link>
-                </motion.div>
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors duration-200"
-                  aria-label="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Link to="/login/patient" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors px-2">
-                  Patient Login
-                </Link>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate('/login/doctor')}
-                    className="shadow-md shadow-primary-500/20"
-                  >
-                    Doctor Login
-                  </Button>
-                </motion.div>
-              </div>
-
-            )}
-            {/* Theme Toggle */}
+          <div className="hidden shrink-0 items-center gap-2.5 xl:flex">
             <ThemeToggle variant="compact" />
+            {user ? (
+              <>
+                <Link
+                  to={userRole === 'doctor' ? '/doctor-dashboard' : '/dashboard'}
+                  className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-primary-200 hover:text-primary-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-primary-800"
+                >
+                  <CircleUserRound className="h-4 w-4" aria-hidden="true" />
+                  <span className="max-w-28 truncate">{user.displayName || user.email?.split('@')[0] || (userRole === 'doctor' ? 'Doctor' : 'Patient')}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login/patient" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                  Patient login
+                </Link>
+                <Button size="sm" onClick={() => navigate('/login/doctor')}>
+                  Doctor login
+                </Button>
+              </>
+            )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="lg:hidden flex items-center">
+          <div className="flex items-center gap-2 xl:hidden">
+            <ThemeToggle variant="compact" />
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="relative p-2 rounded-full text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none"
-              aria-label="Toggle menu"
+              type="button"
+              onClick={() => setIsOpen((open) => !open)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/10"
+              aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isOpen}
+              aria-controls="mobile-navigation"
             >
-              <AnimatePresence mode="wait">
-                {isOpen ? (
-                  <motion.div
-                    key="close"
-                    initial={{ opacity: 0, rotate: -90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <X className="h-5 w-5" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="menu"
-                    initial={{ opacity: 0, rotate: 90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Menu className="h-5 w-5" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Navigation Drawer */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: '100vh' }}
-            exit={{ opacity: 0, height: 0, transition: { duration: 0.3 } }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:hidden fixed top-[72px] left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/50 dark:border-slate-800/50 overflow-y-auto z-40"
-          >
-            <div className="px-6 py-8 space-y-6 flex flex-col min-h-full pb-24">
-              <motion.div
-                className="space-y-2"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: {
-                    transition: {
-                      staggerChildren: 0.05
-                    }
-                  }
-                }}
-              >
-                {visibleLinks.map((link) => {
-                  const isActive = location.pathname.startsWith(link.path);
-                  return (
-                    <motion.div
-                      key={link.name}
-                      variants={{
-                        hidden: { opacity: 0, x: -20 },
-                        visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-                      }}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              id="mobile-navigation"
+              initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden border-t border-slate-200/80 bg-white dark:border-white/[0.08] dark:bg-slate-950"
+            >
+              <div className="max-h-[calc(100vh-100px)] overflow-y-auto px-3 py-4 sm:px-5 sm:py-5">
+                <p className="px-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">Navigation</p>
+                <div className="mt-2 grid gap-1.5">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.label}
+                      to={link.path}
+                      className={cn(
+                        'flex min-h-12 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition',
+                        isActive(link)
+                          ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.05] dark:hover:text-white'
+                      )}
                     >
-                      <Link
-                        to={link.path}
-                        className={cn(
-                          "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 font-medium",
-                          isActive
-                            ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm border border-primary-100/50 dark:border-primary-800/50"
-                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-                        )}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <div className={cn(
-                          "p-2 rounded-xl",
-                          isActive ? "bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                        )}>
-                          <link.icon className="h-5 w-5" />
-                        </div>
-                        {link.name}
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200 dark:bg-white/[0.05] dark:text-slate-300 dark:ring-white/10">
+                        <link.icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
 
-              <div className="self-start">
-                <ThemeToggle variant="default" showLabel />
-              </div>
+                {userRole === 'patient' && (
+                  <Link
+                    to="/emergency"
+                    className="mt-2 flex min-h-12 items-center gap-3 rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-700 dark:bg-red-950/35 dark:text-red-300"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white dark:bg-white/[0.05]">
+                      <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    Emergency information
+                  </Link>
+                )}
 
-              <div className="mt-auto pt-8 border-t border-slate-200/50">
-                <motion.div
-                  className="flex flex-col gap-3"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
+                <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/[0.08]">
                   {user ? (
-                    <>
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                       <Link
                         to={userRole === 'doctor' ? '/doctor-dashboard' : '/dashboard'}
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center justify-between px-5 py-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm text-slate-800 dark:text-slate-200 font-medium"
+                        className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 dark:border-white/10"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center border border-primary-100 dark:border-primary-800">
-                            <User className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                          </div>
-                          <div>
-                            <span className="block text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Account</span>
-                            <span className="block text-sm">{userRole === 'doctor' ? 'Dr. Account' : 'Patient Dashboard'}</span>
-                          </div>
-                        </div>
+                        <CircleUserRound className="h-5 w-5 text-primary-600 dark:text-primary-300" aria-hidden="true" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-slate-800 dark:text-white">{user.displayName || user.email?.split('@')[0] || 'Account'}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">{userRole === 'doctor' ? 'Doctor portal' : 'Patient portal'}</span>
+                        </span>
                       </Link>
-                      <Button variant="ghost" onClick={handleLogout} className="w-full justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 h-12 rounded-xl">
-                        <LogOut className="h-5 w-5 mr-2" />
-                        Sign Out
+                      <Button type="button" variant="ghost" onClick={handleLogout} className="text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40">
+                        <LogOut className="h-4 w-4" aria-hidden="true" />
+                        Sign out
                       </Button>
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => navigate('/test/video-call')}
-                        >
-                          Join Video Call
-                        </Button>
-                      </motion.div>
-
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        <Button variant="ghost" onClick={() => { navigate('/login/patient'); setIsOpen(false); }} className="w-full justify-center h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          Patient Login
-                        </Button>
-                        <Button onClick={() => { navigate('/login/doctor'); setIsOpen(false); }} className="w-full justify-center h-12 rounded-xl shadow-md border border-primary-600 text-white bg-primary-600 hover:bg-primary-700">
-                          Doctor Login
-                        </Button>
-
-                      </div>
-
-                    </>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" onClick={() => navigate('/login/patient')}>Patient login</Button>
+                      <Button onClick={() => navigate('/login/doctor')}>Doctor login</Button>
+                    </div>
                   )}
-                </motion.div>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
-  )
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+    </header>
+  );
 }
